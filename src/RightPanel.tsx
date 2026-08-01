@@ -431,7 +431,7 @@ ${content.split('\n\n').map(para => {
     <div style={{
       width: isOpen ? 300 : 0,
       height: '100%',
-      maxHeight: '100vh',
+      maxHeight: '100dvh',
       flexShrink: 0,
       display: 'flex',
       overflow: 'hidden',
@@ -439,7 +439,7 @@ ${content.split('\n\n').map(para => {
       borderLeft: isOpen ? `1px solid ${c.borderFaint}` : 'none',
     }}>
       {isOpen && (
-        <div style={{ width: 300, height: '100%', maxHeight: '100vh', display: 'flex', flexShrink: 0, flexDirection: 'row', background: c.panel, overflow: 'hidden' }}>
+        <div style={{ width: 300, height: '100%', maxHeight: '100dvh', display: 'flex', flexShrink: 0, flexDirection: 'row', background: c.panel, overflow: 'hidden' }}>
           {/* Vertical tab strip */}
           <div style={{
             width: 40, flexShrink: 0, height: '100%',
@@ -492,7 +492,7 @@ ${content.split('\n\n').map(para => {
           </div>
 
           {/* Content area */}
-          <div style={{ flex: 1, height: '100%', maxHeight: '100vh', overflowY: 'auto', overflowX: 'hidden', padding: '14px 16px', minWidth: 0, minHeight: 0 }}>
+          <div style={{ flex: 1, height: '100%', maxHeight: '100dvh', overflowY: 'auto', overflowX: 'hidden', padding: '14px 16px', minWidth: 0, minHeight: 0 }}>
             {/* Header bar with title and explicit collapse button */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',

@@ -231,7 +231,7 @@ export default function FullscreenPreview({
       {/* Scroll content */}
       <div style={{
         paddingTop: 48,
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: c.bg,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
       }}>

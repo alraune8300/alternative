@@ -197,7 +197,7 @@ function WelcomeScreen({ theme, uiFont, onOpenProject, onImport, onExportAll }: 
 
   return (
     <div 
-      className="min-h-screen w-full flex transition-all duration-500 ease-in-out font-sans relative" 
+      className="min-h-dvh w-full flex transition-all duration-500 ease-in-out font-sans relative" 
       style={{ 
         backgroundColor: theme.bg, 
         color: theme.text, 

@@ -410,7 +410,7 @@ function LeftPanel(props: Record<string, unknown>) {
       className="backdrop-blur-md bg-opacity-70"
       style={{
         width: 230, flexShrink: 0, display: 'flex', flexDirection: 'column',
-        height: '100%', maxHeight: '100vh',
+        height: '100%', maxHeight: '100dvh',
         background: c.isDark ? '#121212' : c.bg,
         borderRight: `1px solid ${c.borderFaint}`,
         overflow: 'hidden',
@@ -635,7 +635,7 @@ function LeftPanel(props: Record<string, unknown>) {
       </div>
 
       {/* Main scrollable body */}
-      <div style={{ flex: 1, height: '100%', maxHeight: '100vh', overflowY: 'auto', overflowX: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, height: '100%', maxHeight: '100dvh', overflowY: 'auto', overflowX: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Tab content */}
         <div style={{ flex: 1, paddingTop: 6, paddingBottom: 8, minHeight: 0 }}>
           {renderTabContent(activeTab === 'drafts')}

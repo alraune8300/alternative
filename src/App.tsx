@@ -880,7 +880,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center" style={{ background: theme.bg, color: theme.muted, fontFamily: `'${uiFont}', sans-serif` }}>
+      <div className="h-dvh w-full flex items-center justify-center" style={{ background: theme.bg, color: theme.muted, fontFamily: `'${uiFont}', sans-serif` }}>
         <p className="text-sm">{t.loading}</p>
       </div>
     );
@@ -926,7 +926,7 @@ export default function App() {
 
   return (
     <div
-      className="h-screen w-full flex overflow-hidden relative"
+      className="h-dvh w-full flex overflow-hidden relative"
       style={{
         background: theme.bg,
         color: theme.text,
