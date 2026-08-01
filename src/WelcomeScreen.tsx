@@ -197,9 +197,9 @@ function WelcomeScreen({ theme, uiFont, onOpenProject, onImport, onExportAll }: 
 
   return (
     <div 
-      className="min-h-dvh w-full flex transition-all duration-500 ease-in-out font-sans relative" 
+      className="h-full w-full flex flex-col md:flex-row transition-all duration-500 ease-in-out font-sans relative overflow-hidden" 
       style={{ 
-        backgroundColor: theme.bg, 
+        background: theme.bg, 
         color: theme.text, 
         fontFamily: `'${uiFont}', 'Inter', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif` 
       }}
@@ -238,46 +238,46 @@ function WelcomeScreen({ theme, uiFont, onOpenProject, onImport, onExportAll }: 
       )}
 
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation (Responsive: Header bar on mobile, left column on md+) */}
       <div 
-        className="w-64 flex-shrink-0 flex flex-col pt-12 px-4 border-r"
+        className="w-full md:w-64 flex-shrink-0 flex flex-row md:flex-col pt-4 md:pt-12 px-4 sm:px-6 pb-4 md:pb-0 border-b md:border-b-0 md:border-r items-center md:items-start justify-between md:justify-start gap-3"
         style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface }}
       >
-        <div className="mb-10 px-2">
-          <h2 className="text-xl font-medium tracking-tight" style={{ color: theme.text }}>Workspace</h2>
+        <div className="mb-0 md:mb-10 px-0 md:px-2">
+          <h2 className="text-lg md:text-xl font-medium tracking-tight" style={{ color: theme.text }}>Workspace</h2>
         </div>
 
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-row md:flex-col gap-2">
           <button 
             onClick={() => setTab('active')} 
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border"
+            className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
             style={{ 
               backgroundColor: tab === 'active' ? theme.accentLight : 'transparent',
               borderColor: tab === 'active' ? theme.border : 'transparent',
               color: tab === 'active' ? theme.text : theme.textMuted
             }}
           >
-            <Home size={18} strokeWidth={tab === 'active' ? 2 : 1.5} />
-            <span className="font-medium text-sm">Active</span>
+            <Home size={16} strokeWidth={tab === 'active' ? 2 : 1.5} />
+            <span className="font-medium text-xs md:text-sm">Active</span>
           </button>
           
           <button 
             onClick={() => setTab('trash')} 
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border"
+            className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
             style={{ 
               backgroundColor: tab === 'trash' ? theme.accentLight : 'transparent',
               borderColor: tab === 'trash' ? theme.border : 'transparent',
               color: tab === 'trash' ? theme.text : theme.textMuted
             }}
           >
-            <Trash2 size={18} strokeWidth={tab === 'trash' ? 2 : 1.5} />
-            <span className="font-medium text-sm">Trash</span>
+            <Trash2 size={16} strokeWidth={tab === 'trash' ? 2 : 1.5} />
+            <span className="font-medium text-xs md:text-sm">Trash</span>
           </button>
         </nav>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col p-8 lg:p-12 overflow-y-auto">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto w-full min-w-0">
         {/* Header / Greeting */}
         <div className="w-full max-w-5xl flex flex-col items-start gap-3 mt-4 mb-12 animate-fade-in-up">
           <h1 className="text-4xl md:text-5xl font-light tracking-tight" style={{ color: theme.text }}>

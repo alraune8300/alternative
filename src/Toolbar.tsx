@@ -4,9 +4,9 @@ import {
   Heading1, Heading2, Heading3,
   List, ListOrdered, Indent, Outdent,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Eraser, Plus, Minus,
+  Eraser, Plus, Minus, ZoomIn,
   PanelLeft, Settings, Maximize2, Minimize2, BookOpen,
-  Divide,
+  Divide
 } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import type { ThemeColors } from './types';
@@ -35,30 +35,49 @@ type Props = {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  zoomPercent?: number;
+  zoomInput?: string;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onZoomReset?: () => void;
+  onZoomInputChange?: (val: string) => void;
+  onZoomInputBlur?: () => void;
 };
 
 function Toolbar({
   editor, theme, uiFont, t,
   selectedFont, selectedSize, availableFonts,
-    onFontChange, onSizeChange, onSizeInput,
-    sidebarOpen, onToggleSidebar,
+  onFontChange, onSizeChange, onSizeInput,
+  sidebarOpen, onToggleSidebar,
   rightOpen, onToggleSettings,
   isFocusMode, onToggleFocusMode,
   isPreviewMode, onTogglePreviewMode,
   onUndo, onRedo, canUndo, canRedo,
+  zoomPercent, zoomInput,
+  onZoomIn, onZoomOut, onZoomReset,
+  onZoomInputChange, onZoomInputBlur,
 }: Props) {
   const [sizeInput, setSizeInput] = useState<string>(String(selectedSize));
   const [, forceUpdate] = useState({});
 
   useEffect(() => {
     if (editor) {
+      let rafId: number;
       const handleUpdate = () => {
-        const sz = editor.getAttributes("textStyle")?.fontSize?.replace("px", "") || selectedSize;
-        setSizeInput(String(sz));
-        forceUpdate({});
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          const sz = editor.getAttributes("textStyle")?.fontSize?.replace("px", "") || selectedSize;
+          setSizeInput(String(sz));
+          forceUpdate({});
+        });
       };
       editor.on("transaction", handleUpdate);
-      return () => { editor.off("transaction", handleUpdate); };
+      editor.on("selectionUpdate", handleUpdate);
+      return () => {
+        cancelAnimationFrame(rafId);
+        editor.off("transaction", handleUpdate);
+        editor.off("selectionUpdate", handleUpdate);
+      };
     } else {
       setSizeInput(String(selectedSize));
     }
@@ -82,7 +101,7 @@ function Toolbar({
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className={`p-1.5 rounded-md transition-colors hover:opacity-80 ${active ? 'kgv-track-active' : ''}`}
+      className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-lg transition-all hover:opacity-80 active:scale-95 cursor-pointer shrink-0 ${active ? 'kgv-track-active' : ''}`}
       style={{ color: active ? undefined : theme.muted }}
       aria-label={label}
       title={label}
@@ -91,11 +110,11 @@ function Toolbar({
     </button>
   );
 
-  const Divider = () => <div className="w-px h-5 mx-1" style={{ backgroundColor: theme.border }} />;
+  const Divider = () => <div className="w-px h-5 mx-1 shrink-0" style={{ backgroundColor: theme.border }} />;
 
   return (
     <div
-      className="sticky top-0 z-10 flex items-center flex-wrap gap-0.5 px-3 py-2"
+      className="sticky top-0 z-10 flex items-center flex-wrap gap-1 px-3 py-2 select-none"
       style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, fontFamily: `'${uiFont}', sans-serif` }}
     >
       {onToggleSidebar && (
@@ -219,8 +238,8 @@ function Toolbar({
 
       <ToolBtn onClick={() => editor.chain().focus().toggleBulletList().run()} icon={<List size={15} />} label={t.bulletList} active={editor.isActive('bulletList')} />
       <ToolBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} icon={<ListOrdered size={15} />} label={t.numberList} active={editor.isActive('orderedList')} />
-      <ToolBtn onClick={() => editor.chain().focus().sinkListItem('listItem').run()} icon={<Indent size={15} />} label={t.indent} />
-      <ToolBtn onClick={() => editor.chain().focus().liftListItem('listItem').run()} icon={<Outdent size={15} />} label={t.outdent} />
+      <ToolBtn onClick={() => (editor.commands as unknown as { indent: () => void }).indent()} icon={<Indent size={15} />} label={t.indent} />
+      <ToolBtn onClick={() => (editor.commands as unknown as { outdent: () => void }).outdent()} icon={<Outdent size={15} />} label={t.outdent} />
 
       <Divider />
 
@@ -233,6 +252,67 @@ function Toolbar({
 
       <ToolBtn onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} icon={<Eraser size={15} />} label={t.clearFormat} />
       <ToolBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={<Divide size={15} />} label="Horizontal Rule" />
+
+      {zoomPercent !== undefined && onZoomIn && onZoomOut && (
+        <>
+          <Divider />
+          <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: theme.isDark ? theme.surface : theme.accentSoft, border: `1px solid ${theme.border}` }}>
+            <ZoomIn size={14} className="opacity-70 ml-0.5 shrink-0" style={{ color: theme.text }} />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onZoomOut}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Thu nhỏ (-10%)"
+              aria-label="Zoom Out"
+            >
+              <Minus size={12} style={{ color: theme.text }} />
+            </button>
+            <div className="flex items-center px-0.5">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={zoomInput || String(zoomPercent)}
+                onChange={(e) => onZoomInputChange?.(e.target.value)}
+                onBlur={onZoomInputBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onZoomInputBlur?.();
+                  }
+                }}
+                className="w-7 text-center text-xs font-semibold bg-transparent outline-none cursor-text"
+                style={{ color: theme.text }}
+                title="Tỉ lệ phóng to/thu nhỏ (50% - 250%)"
+              />
+              <span className="text-[11px] font-semibold opacity-70 -ml-0.5" style={{ color: theme.text }}>%</span>
+            </div>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onZoomIn}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Phóng to (+10%)"
+              aria-label="Zoom In"
+            >
+              <Plus size={12} style={{ color: theme.text }} />
+            </button>
+            {zoomPercent !== 100 && onZoomReset && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={onZoomReset}
+                className="ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 hover:opacity-80 transition-all cursor-pointer shrink-0"
+                style={{ color: theme.text }}
+                title="Đặt lại 100%"
+              >
+                100%
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       <Divider />
 

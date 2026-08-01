@@ -8,15 +8,17 @@ const turndownService = new TurndownService();
 
 export async function exportToPdf(title: string, contentHtml: string, pageFormat: PageFormat) {
   const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '0';
+  container.id = 'pdf-export-container';
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.opacity = '0';
-  container.style.pointerEvents = 'none';
-  container.style.zIndex = '-1000';
+  
   const size = PAPER_SIZES_PX[pageFormat.paperSize] || PAPER_SIZES_PX['A4'];
-  const w = pageFormat.orientation === 'landscape' ? size.h : size.w;
-  const h = pageFormat.orientation === 'landscape' ? size.w : size.h;
+  const isPageless = pageFormat.paperSize === 'pageless' || pageFormat.mode === 'pageless' || size.h === 0;
+  
+  const w = isPageless ? 660 : (pageFormat.orientation === 'landscape' ? size.h : size.w);
+  const h = isPageless ? 0 : (pageFormat.orientation === 'landscape' ? size.w : size.h);
+
   container.style.width = `${w}px`;
   container.style.padding = '40px';
   container.style.backgroundColor = '#ffffff';
@@ -24,52 +26,123 @@ export async function exportToPdf(title: string, contentHtml: string, pageFormat
   container.style.fontFamily = 'Georgia, serif';
   container.style.fontSize = '16px';
   container.style.lineHeight = '1.7';
-  container.innerHTML = `<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px;">${title}</h1>${contentHtml}`;
+  container.style.boxSizing = 'border-box';
+  container.style.wordBreak = 'break-word';
+  container.style.overflowWrap = 'break-word';
+  container.style.whiteSpace = 'normal';
+  container.style.textAlign = 'justify';
+  
+  container.innerHTML = `<style>
+    #pdf-export-container * { box-sizing: border-box; }
+    #pdf-export-container p, #pdf-export-container h1, #pdf-export-container h2, #pdf-export-container h3, #pdf-export-container h4, #pdf-export-container h5, #pdf-export-container h6, #pdf-export-container li { white-space: normal; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; }
+  </style><div style="width: 100%; max-width: 100%;"><h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: left;">${title}</h1>${contentHtml}</div>`;
+  
   document.body.appendChild(container);
 
   try {
     // Wait for fonts/images to settle
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const canvas = await html2canvas(container, { scale: 2, useCORS: true, logging: false });
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      onclone: (clonedDoc) => {
+        const clonedContainer = clonedDoc.getElementById('pdf-export-container');
+        if (clonedContainer) {
+          clonedContainer.style.position = 'static';
+          clonedContainer.style.left = '0';
+          clonedContainer.style.top = '0';
+          clonedContainer.style.margin = '0';
+        }
+      }
+    });
+
     const imgData = canvas.toDataURL('image/png');
-    if (!imgData || imgData === 'data:,') {
+    if (!imgData || imgData === 'data:,' || canvas.width === 0 || canvas.height === 0) {
       throw new Error('Generated image data is invalid.');
     }
-    const pdf = new jsPDF({
-      orientation: pageFormat.orientation,
-      unit: 'px',
-      format: [w, h],
-    });
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.pdf`);
+
+    const pdfWidth = w;
+    const scaleFactor = canvas.width / pdfWidth;
+    const totalPdfHeight = canvas.height / scaleFactor;
+
+    if (isPageless) {
+      const pdfH = Math.max(100, totalPdfHeight);
+      const pdf = new jsPDF({
+        orientation: pageFormat.orientation === 'landscape' ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [pdfWidth, pdfH],
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, totalPdfHeight);
+      pdf.save(`${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.pdf`);
+    } else {
+      const pagePdfHeight = h;
+      const pageCanvasHeight = pagePdfHeight * scaleFactor;
+      const totalPages = Math.ceil(canvas.height / pageCanvasHeight);
+
+      const pdf = new jsPDF({
+        orientation: pageFormat.orientation === 'landscape' ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [pdfWidth, pagePdfHeight],
+      });
+
+      for (let i = 0; i < totalPages; i++) {
+        if (i > 0) {
+          pdf.addPage([pdfWidth, pagePdfHeight], pageFormat.orientation === 'landscape' ? 'landscape' : 'portrait');
+        }
+
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = pageCanvasHeight;
+
+        const pageCtx = pageCanvas.getContext('2d');
+        if (pageCtx) {
+          pageCtx.fillStyle = '#ffffff';
+          pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+          const sourceY = i * pageCanvasHeight;
+          const sourceH = Math.min(pageCanvasHeight, canvas.height - sourceY);
+
+          if (sourceH > 0) {
+            pageCtx.drawImage(
+              canvas,
+              0, sourceY,
+              canvas.width, sourceH,
+              0, 0,
+              canvas.width, sourceH
+            );
+          }
+        }
+
+        const pageImgData = pageCanvas.toDataURL('image/png');
+        pdf.addImage(pageImgData, 'PNG', 0, 0, pdfWidth, pagePdfHeight);
+      }
+
+      pdf.save(`${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.pdf`);
+    }
   } catch (err) {
     console.error('PDF export error:', err);
     alert('Failed to generate PDF. Try printing to PDF instead.');
   } finally {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   }
 }
 
 export function exportToDocx(title: string, contentHtml: string) {
-  const wordDocument = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${title}</title>
+  const wordDocument = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset="utf-8"><title>${title}</title>
 <style>
-body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #333; margin: 1in; }
-h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; color: #111; }
-h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; color: #222; }
-p { margin-bottom: 10pt; }
+  @page { size: 21cm 29.7cm; margin: 2.54cm; }
+  body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 12pt; line-height: 1.5; color: #333; text-align: justify; }
+  h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; color: #111; text-align: left; }
+  h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; color: #222; text-align: left; }
+  p { margin: 0 0 12pt 0; text-align: justify; }
 </style>
-</head>
-<body>
-<h1>${title}</h1>
-${contentHtml}
-</body>
-</html>`;
+</head><body><h1>${title}</h1>${contentHtml}</body></html>`;
   const blob = new Blob(['\ufeff' + wordDocument], { type: 'application/msword' });
   triggerDownload(blob, `${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.doc`);
 }

@@ -7,14 +7,10 @@ import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
-import {
-  Minimize2, X,
-} from 'lucide-react';
 import './Editor.css';
-import { FontSize, LineHeight, TextTransform, FontFeatures, LetterSpacing, WordSpacing } from './tiptapExtensions';
+import { FontSize, LineHeight, TextTransform, FontFeatures, LetterSpacing, WordSpacing, IndentExtension } from './tiptapExtensions';
 import type { ThemeColors, FormatState } from './types';
 import type { Dict } from './i18n';
-import type {  } from './types';
 
 type Props = {
   theme: ThemeColors;
@@ -25,7 +21,7 @@ type Props = {
   t: Dict;
   content: string;
   onContentChange: (html: string) => void;
-    isFocusMode?: boolean;
+  isFocusMode?: boolean;
   onToggleFocusMode?: () => void;
   isPreviewMode?: boolean;
   onTogglePreviewMode?: () => void;
@@ -33,8 +29,8 @@ type Props = {
 
 function Editor({
   theme, docFont, fontSize, formatState, onEditorReady, t, content, onContentChange,
-    isFocusMode = false, onToggleFocusMode,
-  isPreviewMode = false, onTogglePreviewMode,
+  isFocusMode = false,
+  isPreviewMode = false,
 }: Props) {
   const lastEmittedContentRef = useRef(content || '');
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,7 +48,7 @@ function Editor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, horizontalRule: {} }),
-      TextStyle, FontFamily, FontSize, LineHeight, TextTransform, FontFeatures, LetterSpacing, WordSpacing, Superscript, Subscript,
+      TextStyle, FontFamily, FontSize, LineHeight, TextTransform, FontFeatures, LetterSpacing, WordSpacing, Superscript, Subscript, IndentExtension,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: content || '',
@@ -100,15 +96,12 @@ function Editor({
       handleKeyDown: (_view, event) => {
         if (event.key === 'Tab') {
           event.preventDefault();
-          if (event.shiftKey) {
-            if (editor && !editor.isDestroyed && typeof editor.can === 'function' && editor.can().liftListItem('listItem')) {
-              editor.chain().focus().liftListItem('listItem').run();
-            }
-          } else {
-            if (editor && !editor.isDestroyed && typeof editor.can === 'function' && editor.can().sinkListItem('listItem')) {
-              editor.chain().focus().sinkListItem('listItem').run();
+          if (editor && !editor.isDestroyed && typeof editor.commands === 'object') {
+            const cmds = editor.commands as unknown as { indent?: () => boolean; outdent?: () => boolean };
+            if (event.shiftKey) {
+              cmds.outdent?.();
             } else {
-              editor?.chain().focus().insertContent('\u00a0\u00a0\u00a0\u00a0').run();
+              cmds.indent?.();
             }
           }
           return true;
@@ -139,7 +132,7 @@ function Editor({
       editorProps: {
         attributes: {
           class: 'kgv-editor kgv-caret text-left direction-ltr pointer-events-auto user-select-text',
-          style: `color: ${theme.text}; caret-color: ${theme.text}; line-height: ${isPreviewMode ? '2.0' : '1.7'}; min-height: 100%;`,
+          style: `color: ${theme.text}; caret-color: ${theme.text}; line-height: ${(isPreviewMode || isFocusMode) ? '1.8' : '1.7'}; min-height: 100%;`,
           'data-placeholder': t.startWriting,
           dir: 'ltr',
           autocorrect: 'off',
@@ -148,7 +141,7 @@ function Editor({
         },
       },
     });
-  }, [editor, theme.text, t.startWriting, isPreviewMode]);
+  }, [editor, theme.text, t.startWriting, isPreviewMode, isFocusMode]);
 
   useEffect(() => {
     function handleDocFont(e: Event) {
@@ -179,47 +172,6 @@ function Editor({
 
   return (
     <div className="flex flex-col h-full relative">
-
-      {/* Floating minimalist exit button for Focus Mode */}
-      {isFocusMode && !isPreviewMode && onToggleFocusMode && (
-        <div className="fixed top-5 right-5 z-50">
-          <button
-            type="button"
-            onClick={onToggleFocusMode}
-            title="Exit Focus Mode"
-            aria-label="Exit Focus Mode"
-            className="p-2.5 rounded-full shadow-lg backdrop-blur-md transition-all duration-200 hover:scale-110 cursor-pointer flex items-center justify-center border"
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.7)',
-              borderColor: theme.border,
-              color: theme.text,
-            }}
-          >
-            <Minimize2 size={18} />
-          </button>
-        </div>
-      )}
-
-      {/* Floating minimalist exit button for Preview Mode */}
-      {isPreviewMode && onTogglePreviewMode && (
-        <div className="fixed top-5 right-5 z-50">
-          <button
-            type="button"
-            onClick={onTogglePreviewMode}
-            title="Exit Preview Mode"
-            aria-label="Exit Preview Mode"
-            className="p-2.5 rounded-full shadow-lg backdrop-blur-md transition-all duration-200 hover:scale-110 cursor-pointer flex items-center justify-center border"
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.7)',
-              borderColor: theme.border,
-              color: theme.text,
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-      )}
-
       {/* Central Editor Container */}
       <div
         className="flex-1 overflow-y-auto kgv-scroll transition-all duration-300 ease-in-out relative flex justify-center cursor-text"
@@ -236,16 +188,14 @@ function Editor({
       >
         <div
           className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${
-            isPreviewMode
-              ? 'max-w-3xl px-8 md:px-16 pt-12 pb-40 text-lg leading-relaxed font-serif tracking-normal'
-              : isFocusMode
-              ? 'max-w-3xl px-6 md:px-10 pt-16 pb-36'
-              : 'max-w-2xl px-6 md:px-8 pt-10 pb-32'
+            (isPreviewMode || isFocusMode)
+              ? 'max-w-3xl px-4 sm:px-8 md:px-12 pt-6 pb-20 font-serif tracking-normal'
+              : 'max-w-2xl px-4 sm:px-6 md:px-8 pt-6 pb-24'
           }`}
           style={{
             fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
-            fontSize: isPreviewMode ? `${Math.max(formatState?.fontSize || fontSize, 20)}px` : `${formatState?.fontSize || fontSize}px`,
-            lineHeight: isPreviewMode ? 2.0 : (formatState?.lineH || 1.7),
+            fontSize: `${formatState?.fontSize || fontSize}px`,
+            lineHeight: (isPreviewMode || isFocusMode) ? 1.8 : (formatState?.lineH || 1.7),
           }}
         >
           <EditorContent editor={editor} />

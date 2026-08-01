@@ -7,7 +7,7 @@ import { getDict, type Dict } from './i18n';
 import { exportTxt, exportJson } from './exportUtils';
 import { importFile, exportToPdf, exportToDocx, exportToHtmlFile, exportToMarkdownFile, exportToJsonBackup } from './fileHandlers';
 import { saveApiKey, loadApiKey, injectGoogleFont, reinjectSavedFonts } from './googleFontsApi';
-import { Minimize2, X } from 'lucide-react';
+import { Minimize2, X, Plus, Minus, ZoomIn, Eye, Maximize2 } from 'lucide-react';
 import { type Editor as TiptapEditorType } from '@tiptap/react';
 import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
@@ -84,6 +84,24 @@ export default function App() {
 
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [zoomPercent, setZoomPercent] = useState<number>(100);
+  const [zoomInput, setZoomInput] = useState<string>('100');
+
+  useEffect(() => {
+    setZoomInput(String(zoomPercent));
+  }, [zoomPercent]);
+
+  const commitZoomInput = () => {
+    const num = parseInt(zoomInput, 10);
+    if (!isNaN(num)) {
+      const clamped = Math.max(50, Math.min(250, num));
+      setZoomPercent(clamped);
+      setZoomInput(String(clamped));
+    } else {
+      setZoomInput(String(zoomPercent));
+    }
+  };
+
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [networkToast, setNetworkToast] = useState<{ message: string; type: 'offline' | 'online' } | null>(null);
 
@@ -140,10 +158,15 @@ export default function App() {
     }
   }, []);
 
+  const handleExitFocusOrPreview = useCallback(() => {
+    setIsFocusMode(false);
+    setIsPreviewMode(false);
+  }, []);
+
   const handleToggleFocusMode = useCallback(() => {
     setIsFocusMode(prev => {
       const next = !prev;
-      if (next) setIsPreviewMode(false);
+      setIsPreviewMode(false);
 
       // Inject micro-task layout reset using a setTimeout to explicitly re-center/scroll viewport
       setTimeout(() => {
@@ -189,7 +212,7 @@ export default function App() {
   const handleTogglePreviewMode = useCallback(() => {
     setIsPreviewMode(prev => {
       const next = !prev;
-      if (next) setIsFocusMode(false);
+      setIsFocusMode(false);
       return next;
     });
   }, []);
@@ -226,12 +249,13 @@ export default function App() {
     if (customFont) fonts.unshift({ family: customFont.family, label: `${customFont.family} ${t.customFontSuffix}` });
     return fonts;
   }, [customFont, t]);
-
   // Sync document body styles with the current active theme
   useEffect(() => {
     document.body.style.background = theme.bg;
     document.body.style.color = theme.text;
+    document.documentElement.style.setProperty('--bg-color', theme.bg);
   }, [theme.bg, theme.text]);
+
 
   // Persist App Settings / Session state to IndexedDB (appSettings)
   useEffect(() => {
@@ -880,7 +904,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="h-dvh w-full flex items-center justify-center" style={{ background: theme.bg, color: theme.muted, fontFamily: `'${uiFont}', sans-serif` }}>
+      <div className="h-full w-full flex items-center justify-center" style={{ background: theme.bg, color: theme.muted, fontFamily: `'${uiFont}', sans-serif` }}>
         <p className="text-sm">{t.loading}</p>
       </div>
     );
@@ -926,7 +950,7 @@ export default function App() {
 
   return (
     <div
-      className="h-dvh w-full flex overflow-hidden relative"
+      className="h-full w-full flex overflow-hidden relative"
       style={{
         background: theme.bg,
         color: theme.text,
@@ -934,27 +958,17 @@ export default function App() {
         transition: 'background 300ms, color 300ms',
       }}
     >
-      {(isFocusMode || isPreviewMode) && (
-        <button
-          onClick={isFocusMode ? handleToggleFocusMode : handleTogglePreviewMode}
-          className="fixed top-6 right-6 z-50 p-2.5 rounded-full shadow-lg border backdrop-blur-md transition-transform hover:scale-110 cursor-pointer flex items-center justify-center"
-          style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, colorScheme: theme.isDark ? "dark" : "light" }}
-          title={isFocusMode ? "Exit Focus Mode" : "Exit Preview Mode"}
-        >
-          <X size={20} />
-        </button>
-      )}
-      {/* Mobile backdrop for sidebar */}
+      {/* Mobile/Tablet backdrop for sidebar */}
       {sidebarOpen && !isFocusMode && !isPreviewMode && (
-        <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Left Panel with fluid width, smooth slide transitions & adaptive graphic scaling */}
       <div
         className={`
-          fixed md:relative top-0 left-0 h-full z-40 md:z-auto flex-shrink-0
-          transition-all duration-300 ease-in-out transform shadow-xl md:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
-          ${sidebarOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[240px]' : '-translate-x-full opacity-0 w-0 pointer-events-none'}
+          fixed lg:relative top-0 left-0 h-full z-40 lg:z-auto flex-shrink-0
+          transition-all duration-300 ease-in-out transform shadow-2xl lg:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
+          ${sidebarOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[260px]' : '-translate-x-full opacity-0 w-0 pointer-events-none'}
         `}
       >
         <LeftPanel
@@ -971,7 +985,7 @@ export default function App() {
           onNewProject={handleCreateNewProject}
           onRenameProject={handleRenameProject}
           onDeleteProject={handleDeleteProject}
-          onSelectPage={(id: string) => { setActivePageId(id); if (window.innerWidth < 768) setSidebarOpen(false); }}
+          onSelectPage={(id: string) => { setActivePageId(id); if (window.innerWidth < 1024) setSidebarOpen(false); }}
           onNewPage={addPage}
           onDeletePage={deletePage}
           onRenamePage={renamePage}
@@ -1035,6 +1049,19 @@ export default function App() {
                 onRedo={() => (editorInstance as TiptapEditorType)?.chain().focus().redo().run()}
                 canUndo={Boolean(!editorInstance?.isDestroyed && (editorInstance as unknown as { can: () => { undo: () => boolean, redo: () => boolean } })?.can?.()?.undo?.())}
                 canRedo={Boolean(!editorInstance?.isDestroyed && (editorInstance as unknown as { can: () => { undo: () => boolean, redo: () => boolean } })?.can?.()?.redo?.())}
+                zoomPercent={zoomPercent}
+                zoomInput={zoomInput}
+                onZoomIn={() => setZoomPercent(prev => Math.min(250, prev + 10))}
+                onZoomOut={() => setZoomPercent(prev => Math.max(50, prev - 10))}
+                onZoomReset={() => setZoomPercent(100)}
+                onZoomInputChange={(val) => {
+                  setZoomInput(val);
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && num >= 50 && num <= 250 && val.length >= 2) {
+                    setZoomPercent(num);
+                  }
+                }}
+                onZoomInputBlur={commitZoomInput}
               />
             </div>
             <button
@@ -1051,7 +1078,59 @@ export default function App() {
         )}
 
         {!isFocusMode && !isPreviewMode && !showRibbon && (
-          <div className="flex justify-end px-6 pt-2">
+          <div className="flex items-center justify-between px-6 pt-2 select-none">
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-sm backdrop-blur-md"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, fontFamily: uiFont }}
+            >
+              <ZoomIn size={13} className="opacity-70 mr-0.5" />
+              <button
+                type="button"
+                onClick={() => setZoomPercent(prev => Math.max(50, prev - 10))}
+                className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                title="Thu nhỏ (-10%)"
+              >
+                <Minus size={12} />
+              </button>
+              <div className="flex items-center px-0.5">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={zoomInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setZoomInput(val);
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num) && num >= 50 && num <= 250 && val.length >= 2) {
+                      setZoomPercent(num);
+                    }
+                  }}
+                  onBlur={commitZoomInput}
+                  className="w-7 text-center text-xs font-semibold bg-transparent outline-none cursor-text"
+                />
+                <span className="text-xs font-semibold opacity-70 -ml-0.5">%</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setZoomPercent(prev => Math.min(250, prev + 10))}
+                className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                title="Phóng to (+10%)"
+              >
+                <Plus size={12} />
+              </button>
+              {zoomPercent !== 100 && (
+                <button
+                  type="button"
+                  onClick={() => setZoomPercent(100)}
+                  className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 hover:opacity-80 active:scale-95 transition-all cursor-pointer"
+                  title="Đặt lại 100%"
+                >
+                  100%
+                </button>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => { setShowRibbon(true); LS.set('kgv-show-ribbon', 'true'); }}
@@ -1063,24 +1142,14 @@ export default function App() {
           </div>
         )}
 
-        {isPreviewMode && (
-          <div className="max-w-3xl mx-auto w-full px-6 md:px-8 pt-12 md:pt-16 text-center transition-all duration-300">
-            <h1
-              className="text-3xl md:text-4xl font-serif font-semibold tracking-tight"
-              style={{ fontFamily: `'${docFont}', Georgia, serif`, color: theme.text }}
-            >
-              {activePage?.title || 'Untitled Document'}
-            </h1>
-            <div className="w-12 h-0.5 mx-auto mt-4 mb-2 rounded opacity-30" style={{ backgroundColor: theme.text }} />
-          </div>
-        )}
-
         {/* Floating Paper Sheet Container & Dynamic Page Format Wrapper with momentum scroll & GPU locking */}
-        <div className="flex-1 overflow-y-auto kgv-scroll kgv-momentum-scroll kgv-hardware-accelerated transition-all duration-300 ease-in-out flex flex-col items-center pt-16 pb-36 md:pt-20 md:pb-40">
+        <div className="flex-1 overflow-y-auto kgv-scroll kgv-momentum-scroll kgv-hardware-accelerated transition-all duration-300 ease-in-out flex flex-col items-center pt-16 sm:pt-20 pb-36 md:pt-24 md:pb-40 px-3 sm:px-6">
+          <div className="w-full flex flex-col items-center transition-all duration-200" style={{ zoom: zoomPercent / 100 }}>
           {(() => {
-            const isPageless = pageFormat.paperSize === 'pageless' || isPreviewMode || isFocusMode;
+            const isPreviewOrFocus = isPreviewMode || isFocusMode;
+            const isPageless = pageFormat.paperSize === 'pageless';
             const textLength = (activePage?.content || '').replace(/<[^>]*>/g, '').length;
-            const pageCount = isPageless ? 1 : Math.max(1, Math.ceil(textLength / 2200));
+            const pageCount = (isPageless || isPreviewOrFocus) ? 1 : Math.max(1, Math.ceil(textLength / 2200));
 
             const paperWidth = pageFormat.orientation === 'landscape'
               ? (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123)
@@ -1088,6 +1157,46 @@ export default function App() {
             const paperHeight = pageFormat.orientation === 'landscape'
               ? (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794)
               : (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123);
+
+            if (isPreviewOrFocus) {
+              return (
+                <div
+                  className="w-full max-w-[640px] md:max-w-[700px] lg:max-w-3xl mt-2 sm:mt-4 mb-20 rounded-2xl md:rounded-3xl p-5 sm:p-8 md:p-12 border shadow-2xl relative transition-all duration-300 kgv-hardware-accelerated kgv-adaptive-paper mx-auto"
+                  style={{
+                    backgroundColor: theme.surface || '#ffffff',
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                >
+                  {/* Title Header in Preview / Focus card */}
+                  <div className="text-center mb-6 pt-2">
+                    <h1
+                      className="text-2xl sm:text-3xl font-serif font-semibold tracking-tight"
+                      style={{ fontFamily: `'${docFont}', Georgia, serif`, color: theme.text }}
+                    >
+                      {activePage?.title || 'Untitled Document'}
+                    </h1>
+                    <div className="w-12 h-0.5 mx-auto mt-3 rounded opacity-30" style={{ backgroundColor: theme.text }} />
+                  </div>
+
+                  <Editor
+                    key={activePage?.id || 'empty'}
+                    theme={theme}
+                    docFont={docFont}
+                    fontSize={fontSize}
+                    formatState={formatState}
+                    onEditorReady={setEditorInstance}
+                    t={t}
+                    content={activePage?.content || ''}
+                    onContentChange={handleContentChange}
+                    isFocusMode={isFocusMode}
+                    onToggleFocusMode={handleToggleFocusMode}
+                    isPreviewMode={isPreviewMode}
+                    onTogglePreviewMode={handleTogglePreviewMode}
+                  />
+                </div>
+              );
+            }
 
             if (isPageless) {
               return (
@@ -1109,7 +1218,7 @@ export default function App() {
                     t={t}
                     content={activePage?.content || ''}
                     onContentChange={handleContentChange}
-                                        isFocusMode={isFocusMode}
+                    isFocusMode={isFocusMode}
                     onToggleFocusMode={handleToggleFocusMode}
                     isPreviewMode={isPreviewMode}
                     onTogglePreviewMode={handleTogglePreviewMode}
@@ -1119,13 +1228,13 @@ export default function App() {
             }
 
             return (
-              <div className="flex flex-col items-center gap-4 w-full relative pt-12 pb-24 md:pt-16 md:pb-32" style={{ maxWidth: `${paperWidth}px` }}>
+              <div className="flex flex-col items-center gap-4 w-full relative pt-8 pb-24 md:pt-16 md:pb-32 px-4 sm:px-6" style={{ maxWidth: `min(100%, ${paperWidth}px)` }}>
                 {Array.from({ length: pageCount }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-full relative rounded-2xl p-12 md:p-16 kgv-adaptive-paper flex flex-col justify-between"
+                    className="w-full relative rounded-2xl p-6 sm:p-10 md:p-16 kgv-adaptive-paper flex flex-col justify-between shadow-md"
                     style={{
-                      width: `${paperWidth}px`,
+                      maxWidth: `min(100%, ${paperWidth}px)`,
                       minHeight: `${paperHeight}px`,
                       backgroundColor: theme.surface || '#ffffff',
                       color: theme.text,
@@ -1134,7 +1243,7 @@ export default function App() {
                     <div className="flex-1">
                       {idx === 0 && (
                         <Editor
-                    key={activePage?.id || 'empty'}
+                          key={activePage?.id || 'empty'}
                           theme={theme}
                           docFont={docFont}
                           fontSize={fontSize}
@@ -1143,7 +1252,7 @@ export default function App() {
                           t={t}
                           content={activePage?.content || ''}
                           onContentChange={handleContentChange}
-                                                    isFocusMode={isFocusMode}
+                          isFocusMode={isFocusMode}
                           onToggleFocusMode={handleToggleFocusMode}
                           isPreviewMode={isPreviewMode}
                           onTogglePreviewMode={handleTogglePreviewMode}
@@ -1159,20 +1268,21 @@ export default function App() {
               </div>
             );
           })()}
+          </div>
         </div>
       </main>
 
       {/* Right Panel with fluid width, smooth slide transitions & backdrop-blur edge */}
+      {rightOpen && !isFocusMode && !isPreviewMode && (
+        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setRightOpen(false)} />
+      )}
       <div
         className={`
-          fixed md:relative top-0 right-0 h-full z-40 md:z-auto flex-shrink-0
-          transition-all duration-300 ease-in-out transform shadow-xl md:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
+          fixed lg:relative top-0 right-0 h-full z-40 lg:z-auto flex-shrink-0
+          transition-all duration-300 ease-in-out transform shadow-2xl lg:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
           ${rightOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[300px]' : 'translate-x-full opacity-0 w-0 pointer-events-none'}
         `}
       >
-        {rightOpen && !isFocusMode && !isPreviewMode && (
-          <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setRightOpen(false)} />
-        )}
         <RightPanel
           key={activeProjectId}
           editor={editorInstance}
@@ -1273,8 +1383,105 @@ export default function App() {
 
 
       {!sidebarOpen && (
-        <div className="fixed bottom-4 left-5 z-20 text-xs pointer-events-none" style={{ color: theme.faint }}>
+        <div className="absolute bottom-4 left-5 z-20 text-xs pointer-events-none" style={{ color: theme.faint }}>
           {saving ? (t.saving || 'Saving...') : (t.saved || 'Saved')}
+        </div>
+      )}
+
+      {(isFocusMode || isPreviewMode) && (
+        <div 
+          style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 999999 }}
+          className="flex items-center gap-2 pointer-events-auto select-none max-w-[calc(100vw-24px)]"
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full shadow-2xl border backdrop-blur-md"
+            style={{
+              backgroundColor: 'rgba(30, 41, 59, 0.92)',
+              borderColor: 'rgba(255, 255, 255, 0.15)',
+              color: '#f8fafc',
+              fontFamily: uiFont,
+            }}
+          >
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/90 text-slate-200 text-xs font-medium border border-slate-700/50 shrink-0">
+              {isPreviewMode ? <Eye size={13} className="text-slate-300" /> : <Maximize2 size={13} className="text-slate-300" />}
+              <span>{isFocusMode ? (t.focusMode || 'Tập trung') : (t.preview || 'Xem trước')}</span>
+            </div>
+
+            <div className="w-px h-3.5 bg-slate-700/60 shrink-0 mx-0.5" />
+
+            <ZoomIn size={14} className="text-slate-400 shrink-0" />
+            
+            <button
+              type="button"
+              onClick={() => setZoomPercent(prev => Math.max(50, prev - 10))}
+              className="w-6 h-6 flex items-center justify-center rounded-full text-slate-300 hover:bg-slate-700/70 hover:text-white active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Thu nhỏ (-10%)"
+              aria-label="Zoom Out"
+            >
+              <Minus size={13} />
+            </button>
+
+            <div className="flex items-center px-0.5">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={zoomInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setZoomInput(val);
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && num >= 50 && num <= 250 && val.length >= 2) {
+                    setZoomPercent(num);
+                  }
+                }}
+                onBlur={commitZoomInput}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitZoomInput();
+                  }
+                }}
+                className="w-8 text-center text-xs font-bold text-white bg-transparent outline-none cursor-text"
+                title="Tỉ lệ phóng to/thu nhỏ (50% - 250%)"
+              />
+              <span className="text-xs font-semibold text-slate-300 -ml-0.5">%</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setZoomPercent(prev => Math.min(250, prev + 10))}
+              className="w-6 h-6 flex items-center justify-center rounded-full text-slate-300 hover:bg-slate-700/70 hover:text-white active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Phóng to (+10%)"
+              aria-label="Zoom In"
+            >
+              <Plus size={13} />
+            </button>
+
+            {zoomPercent !== 100 && (
+              <button
+                type="button"
+                onClick={() => setZoomPercent(100)}
+                className="ml-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all cursor-pointer shrink-0"
+                title="Đặt lại 100%"
+              >
+                100%
+              </button>
+            )}
+
+            <div className="w-px h-3.5 bg-slate-700/60 shrink-0 mx-0.5" />
+
+            <button
+              type="button"
+              onClick={handleExitFocusOrPreview}
+              className="px-2.5 py-1 text-xs font-semibold rounded-full text-red-400 hover:text-red-300 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer shrink-0 flex items-center gap-1"
+              title={isFocusMode ? "Thoát chế độ tập trung" : "Thoát chế độ xem trước"}
+              aria-label="Exit Mode"
+            >
+              <X size={13} className="text-red-400" />
+              <span>Thoát</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

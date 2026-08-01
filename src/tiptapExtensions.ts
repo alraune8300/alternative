@@ -173,3 +173,88 @@ export const WordSpacing = Extension.create({
     } as unknown as Record<string, unknown>;
   },
 });
+
+export const IndentExtension = Extension.create({
+  name: 'indentExtension',
+
+  addOptions() {
+    return {
+      types: ['paragraph', 'heading', 'blockquote'],
+      indentStep: 24,
+      maxIndent: 120,
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          indent: {
+            default: 0,
+            parseHTML: (element) => {
+              const marginLeft = element.style.marginLeft;
+              return marginLeft ? parseInt(marginLeft, 10) || 0 : 0;
+            },
+            renderHTML: (attributes) => {
+              if (!attributes.indent || attributes.indent <= 0) {
+                return {};
+              }
+              return {
+                style: `margin-left: ${attributes.indent}px`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+
+  addCommands() {
+    return {
+      indent: () => ({ tr, state, dispatch, commands }: { tr: unknown; state: { selection: { from: number; to: number }; doc: { nodesBetween: (from: number, to: number, callback: (node: { type: { name: string }; attrs: Record<string, number> }, pos: number) => void) => void } }; dispatch?: (tr: unknown) => void; commands?: Record<string, (arg?: string) => boolean> }) => {
+        if (commands && typeof commands.sinkListItem === 'function' && commands.sinkListItem('listItem')) {
+          return true;
+        }
+        const { selection } = state;
+        let updated = false;
+        state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+          if (this.options.types.includes(node.type.name)) {
+            const currentIndent = node.attrs.indent || 0;
+            const nextIndent = Math.min(currentIndent + this.options.indentStep, this.options.maxIndent);
+            if (dispatch) {
+              (tr as { setNodeMarkup: (pos: number, type: undefined, attrs: Record<string, unknown>) => void }).setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                indent: nextIndent,
+              });
+            }
+            updated = true;
+          }
+        });
+        return updated;
+      },
+      outdent: () => ({ tr, state, dispatch, commands }: { tr: unknown; state: { selection: { from: number; to: number }; doc: { nodesBetween: (from: number, to: number, callback: (node: { type: { name: string }; attrs: Record<string, number> }, pos: number) => void) => void } }; dispatch?: (tr: unknown) => void; commands?: Record<string, (arg?: string) => boolean> }) => {
+        if (commands && typeof commands.liftListItem === 'function' && commands.liftListItem('listItem')) {
+          return true;
+        }
+        const { selection } = state;
+        let updated = false;
+        state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+          if (this.options.types.includes(node.type.name)) {
+            const currentIndent = node.attrs.indent || 0;
+            const nextIndent = Math.max(currentIndent - this.options.indentStep, 0);
+            if (dispatch) {
+              (tr as { setNodeMarkup: (pos: number, type: undefined, attrs: Record<string, unknown>) => void }).setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                indent: nextIndent,
+              });
+            }
+            updated = true;
+          }
+        });
+        return updated;
+      },
+    } as unknown as Record<string, unknown>;
+  },
+});
+
