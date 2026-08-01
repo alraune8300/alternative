@@ -1,0 +1,24 @@
+--- src/Toolbar.tsx
++++ src/Toolbar.tsx
+@@ -53,6 +53,16 @@
+ }: Props) {
+   const [sizeInput, setSizeInput] = useState<string>(String(selectedSize));
++  const [, forceUpdate] = useState({});
+ 
+   useEffect(() => {
+-    setSizeInput(String(selectedSize));
++    if (editor) {
++      const handleUpdate = () => {
++        const sz = editor.getAttributes('textStyle')?.fontSize?.replace('px', '') || selectedSize;
++        setSizeInput(String(sz));
++        forceUpdate({});
++      };
++      editor.on('transaction', handleUpdate);
++      return () => { editor.off('transaction', handleUpdate); };
++    } else {
++      setSizeInput(String(selectedSize));
++    }
+-  }, [selectedSize]);
++  }, [editor, selectedSize]);
+ 
+   const commitSizeInput = () => {
