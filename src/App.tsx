@@ -1011,31 +1011,52 @@ export default function App() {
 
   if (!isWorkspaceActive) {
     return (
-      <WelcomeScreen
-        theme={theme}
-        uiFont={uiFont}
-        onOpenProject={(projectId) => {
-          setActiveProjectId(projectId);
-          setIsWorkspaceActive(true);
-        }}
-        onImport={() => {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = '.txt,.md,.docx';
-          input.onchange = async (e: Event) => {
-            const target = e.target as HTMLInputElement;
-            const file = target.files?.[0];
-            if (file) {
-              await handleImportFile(file);
-              setIsWorkspaceActive(true);
+      <>
+        <WelcomeScreen
+          theme={theme}
+          uiFont={uiFont}
+          lang={lang}
+          onOpenGithubCloudSave={() => setGithubModalOpen(true)}
+          onOpenProject={(projectId) => {
+            setActiveProjectId(projectId);
+            setIsWorkspaceActive(true);
+          }}
+          onImport={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.md,.docx';
+            input.onchange = async (e: Event) => {
+              const target = e.target as HTMLInputElement;
+              const file = target.files?.[0];
+              if (file) {
+                await handleImportFile(file);
+                setIsWorkspaceActive(true);
+              }
+            };
+            input.click();
+          }}
+          onExportAll={() => {
+            exportToJsonBackup(projects);
+          }}
+        />
+        <GithubCloudSaveModal
+          isOpen={githubModalOpen}
+          onClose={() => setGithubModalOpen(false)}
+          lang={lang}
+          uiFont={uiFont}
+          theme={theme}
+          onDataRestored={async () => {
+            const projs = await getAllProjectsFromDB();
+            setProjects(projs);
+            if (projs.length > 0) {
+              if (!projs.find(p => p.id === activeProjectId)) {
+                setActiveProjectId(projs[0].id);
+                setActivePageId(projs[0].pages[0]?.id || '');
+              }
             }
-          };
-          input.click();
-        }}
-        onExportAll={() => {
-          exportToJsonBackup(projects);
-        }}
-      />
+          }}
+        />
+      </>
     );
   }
 

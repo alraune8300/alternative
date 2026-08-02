@@ -79,10 +79,6 @@ function LeftPanel(props: Record<string, unknown>) {
   const onRenamePage = (props.onRenamePage || (() => {})) as (id: string, name: string) => void
   const syncStatus: SyncStatus = (props.syncStatus || 'saved') as SyncStatus
   const lastSaved: Date = (props.lastSaved || new Date()) as Date
-  const driveConnected = Boolean(props.driveConnected)
-  const driveConnecting = Boolean(props.driveConnecting)
-  const onConnectDrive = (props.onConnectDrive || (() => {})) as () => void
-  const onDisconnectDrive = (props.onDisconnectDrive || (() => {})) as () => void
   const bin: Page[] = activeProject ? activeProject.bin : (Array.isArray(props.bin) ? (props.bin as Page[]) : [])
   const onRestorePage = (props.onRestorePage || (() => {})) as (id: string) => void
   const onPermanentDelete = (props.onPermanentDelete || (() => {})) as (id: string) => void
@@ -449,18 +445,18 @@ function LeftPanel(props: Record<string, unknown>) {
             fontFamily: uiFont, fontSize: '10px', fontWeight: 500,
             textTransform: 'uppercase', letterSpacing: '0.1em', color: c.textFaint, flex: 1
           }}>
-            Projects
+            {t(lang, 'projects')}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
               type="button"
               onClick={onNewProject}
-              title="Create New Document"
+              title={t(lang, 'newDocument')}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-transparent border border-neutral-200/20 dark:border-neutral-800/40 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/10 transition-all text-[11px] font-medium cursor-pointer"
               style={{ fontFamily: uiFont }}
             >
               <span className="text-xs leading-none">+</span>
-              <span>New Doc</span>
+              <span>{t(lang, 'newDoc')}</span>
             </button>
             {Boolean(props.onCloseSidebar || props.onClose) && (
               <button
@@ -523,7 +519,7 @@ function LeftPanel(props: Record<string, unknown>) {
                   </select>
                   <button
                     type="button"
-                    title="Search Projects"
+                    title={t(lang, 'searchProjects')}
                     onClick={() => setShowProjSearch(v => !v)}
                     style={{
                       background: 'none', border: `1px solid ${showProjSearch ? c.accent : c.borderFaint}`,
@@ -536,7 +532,7 @@ function LeftPanel(props: Record<string, unknown>) {
                   </button>
                   <button
                     type="button"
-                    title="Rename Project"
+                    title={t(lang, 'renameProject')}
                     onClick={() => { setRenamingProjId(activeProjectId); setProjRenameVal(activeProject?.title || '') }}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
@@ -550,9 +546,9 @@ function LeftPanel(props: Record<string, unknown>) {
                   {projectsProp.length > 1 && (
                     <button
                       type="button"
-                      title="Delete Project"
+                      title={t(lang, 'deleteProject')}
                       onClick={() => {
-                        if (window.confirm(`Delete project "${activeProject?.title || 'Untitled'}" and all its pages?`)) {
+                        if (window.confirm(t(lang, 'deleteProjectConfirm'))) {
                           onDeleteProject(activeProjectId)
                         }
                       }}
@@ -573,7 +569,7 @@ function LeftPanel(props: Record<string, unknown>) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', marginTop: 2 }}>
                 <input
                   autoFocus
-                  placeholder="Search projects..."
+                  placeholder={t(lang, 'searchProjects')}
                   value={projSearchQuery}
                   onChange={e => setProjSearchQuery(e.target.value)}
                   style={{
@@ -716,7 +712,7 @@ function LeftPanel(props: Record<string, unknown>) {
         {/* GitHub Cloud Save (Encrypted Backup) */}
         <div style={{ padding: '10px 14px', borderTop: `1px solid ${c.borderFaint}`, flexShrink: 0 }}>
           <span style={{ fontFamily: uiFont, fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: c.textFaint, display: 'block', marginBottom: 7 }}>
-            GitHub Cloud Save
+            {t(lang, 'githubCloudSaveTitle')}
           </span>
           <button
             onClick={onOpenGithubCloudSave}
@@ -733,59 +729,10 @@ function LeftPanel(props: Record<string, unknown>) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
               </svg>
-              <span>Lưu đám mây (Secret Code)</span>
+              <span>{t(lang, 'cloudSave')}</span>
             </div>
             <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>🔒</span>
           </button>
-        </div>
-
-        {/* Google Drive */}
-        <div style={{ padding: '10px 14px', borderTop: `1px solid ${c.borderFaint}`, flexShrink: 0 }}>
-          <span style={{ fontFamily: uiFont, fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: c.textFaint, display: 'block', marginBottom: 7 }}>
-            {t(lang, 'googleDrive')}
-          </span>
-          {driveConnected ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M4.5 20L1 14l5.5-9.5h11L23 14l-3.5 6H4.5z" fill="#4285f4" opacity="0.2"/>
-                  <path d="M8 20l-4-6.5 4-7h8l4 7-4 6.5H8z" stroke="#4285f4" strokeWidth="1.5" fill="none"/>
-                </svg>
-                <span style={{ fontFamily: uiFont, fontSize: '0.72rem', color: c.text }}>drive@gmail.com</span>
-              </div>
-              <button onClick={onDisconnectDrive}
-                style={{ fontFamily: uiFont, fontSize: '0.68rem', color: c.textFaint, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', transition: 'color 0.12s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
-                onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}>
-                {t(lang, 'disconnect')}
-              </button>
-            </div>
-          ) : (
-            <button onClick={onConnectDrive} disabled={driveConnecting}
-              style={{
-                width: '100%', padding: '6px 10px', borderRadius: 6, border: `1px solid ${c.border}`,
-                background: driveConnecting ? c.accentLight : 'transparent',
-                fontFamily: uiFont, fontSize: '0.74rem', color: driveConnecting ? c.accent : c.textMuted,
-                cursor: driveConnecting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (!driveConnecting) e.currentTarget.style.borderColor = c.accentMid }}
-              onMouseLeave={e => { if (!driveConnecting) e.currentTarget.style.borderColor = c.border }}>
-              {driveConnecting ? (
-                <>
-                  <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
-                  <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
-                  {t(lang, 'connecting')}
-                </>
-              ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill={c.textMuted}>
-                    <path d="M4.5 20L1 14l5.5-9.5h11L23 14l-3.5 6H4.5z"/>
-                  </svg>
-                  {t(lang, 'connectDrive')}
-                </>
-              )}
-            </button>
-          )}
         </div>
       </div>
     </div>

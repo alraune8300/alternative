@@ -25,7 +25,7 @@ import {
   pullFromGithubCloud,
   GithubCloudConfig,
 } from './githubCloudSave';
-import { Lang } from './i18n';
+import { Lang, t } from './i18n';
 
 interface GithubCloudSaveModalProps {
   isOpen: boolean;
@@ -47,6 +47,7 @@ interface GithubCloudSaveModalProps {
 export default function GithubCloudSaveModal({
   isOpen,
   onClose,
+  lang = 'en',
   uiFont = 'Inter',
   theme,
   onDataRestored,
@@ -219,13 +220,13 @@ export default function GithubCloudSaveModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold tracking-tight">Lưu đám mây GitHub Private</h3>
+                <h3 className="text-sm font-bold tracking-tight">{t(lang, 'githubCloudSaveTitle')}</h3>
                 <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
                   <ShieldCheck size={11} /> AES-256
                 </span>
               </div>
               <p className="text-[11px] mt-0.5 opacity-70" style={{ color: textMuted }}>
-                Mã hóa & đồng bộ dữ liệu qua GitHub Gist riêng tư
+                {t(lang, 'githubCloudSaveDesc')}
               </p>
             </div>
           </div>
@@ -269,10 +270,10 @@ export default function GithubCloudSaveModal({
           >
             <div className="flex items-center gap-1.5 mb-1">
               <Lock size={14} style={{ color: accentColor }} />
-              <label className="text-[11px] font-bold tracking-wider uppercase opacity-90">Mã bí mật giải mã (Secret Code)</label>
+              <label className="text-[11px] font-bold tracking-wider uppercase opacity-90">{t(lang, 'secretCode')}</label>
             </div>
             <p className="text-[11px] mb-2.5 leading-snug" style={{ color: textFaint }}>
-              Dùng để mã hóa dữ liệu JSON trước khi tải lên. Không ai có thể giải mã file nếu thiếu mã này.
+              {t(lang, 'secretCodeDesc')}
             </p>
             <div className="relative">
               <input
@@ -310,7 +311,7 @@ export default function GithubCloudSaveModal({
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <Key size={14} style={{ color: accentColor }} />
-                <label className="text-[11px] font-bold tracking-wider uppercase opacity-90">GitHub Personal Access Token (PAT)</label>
+                <label className="text-[11px] font-bold tracking-wider uppercase opacity-90">{t(lang, 'githubToken')}</label>
               </div>
               <a
                 href="https://github.com/settings/tokens/new?scopes=gist&description=KgvWritingAppCloudSave"
@@ -319,11 +320,11 @@ export default function GithubCloudSaveModal({
                 className="text-[10px] font-semibold opacity-80 hover:opacity-100 flex items-center gap-0.5 underline"
                 style={{ color: accentColor }}
               >
-                Tạo Token <ExternalLink size={10} />
+                Token <ExternalLink size={10} />
               </a>
             </div>
             <p className="text-[11px] mb-2.5 leading-snug" style={{ color: textFaint }}>
-              Token cần cấp quyền <code className="px-1 py-0.5 rounded bg-black/10 dark:bg-white/10 font-mono text-[10px]">gist</code> để tương tác với Gist của bạn.
+              {t(lang, 'githubTokenDesc')}
             </p>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -361,7 +362,7 @@ export default function GithubCloudSaveModal({
                 ) : (
                   <CheckCircle2 size={12} />
                 )}
-                Kiểm tra
+                {t(lang, 'testConnection')}
               </button>
             </div>
 
@@ -435,7 +436,7 @@ export default function GithubCloudSaveModal({
                 ) : (
                   <UploadCloud size={15} />
                 )}
-                <span>Lưu đám mây (Push)</span>
+                <span>{t(lang, 'backupData')}</span>
               </button>
 
               <button
@@ -453,7 +454,7 @@ export default function GithubCloudSaveModal({
                 ) : (
                   <DownloadCloud size={15} />
                 )}
-                <span>Khôi phục (Pull)</span>
+                <span>{t(lang, 'restoreData')}</span>
               </button>
             </div>
           </div>

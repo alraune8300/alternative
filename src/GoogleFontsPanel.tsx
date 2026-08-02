@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ThemeColors } from './types';
 import type { Theme } from './theme';
+import { t, Lang } from './i18n';
 
 const FONT_CATEGORIES = [
   {
@@ -83,6 +84,7 @@ interface GoogleFontsPanelProps {
   c?: Theme | Record<string, unknown>;
   theme?: ThemeColors | Record<string, unknown>;
   uiFont?: string;
+  lang?: Lang;
   t?: unknown;
   apiKey?: string;
   onClose?: () => void;
@@ -101,6 +103,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
   const {
     onSelect,
     uiFont = 'Inter',
+    lang = 'en',
     onClose,
     onApplyToSelection,
     onApplyToUi,
@@ -183,7 +186,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
             cursor: 'pointer', transition: 'all 0.15s',
           }}
         >
-          Font Catalog & Selection
+          {t(lang, 'fontCatalog')}
         </button>
         <button
           type="button"
@@ -196,21 +199,21 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
             cursor: 'pointer', transition: 'all 0.15s',
           }}
         >
-          Font Roles & Variables
+          {t(lang, 'fontRolesAndVars')}
         </button>
       </div>
 
       {activeTab === 'roles' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
           <div style={{ fontSize: '0.78rem', color: c.textMuted, marginBottom: 4 }}>
-            Configure semantic font roles. Changes instantly apply dynamic CSS variables across the app and UI.
+            {t(lang, 'fontRolesDesc')}
           </div>
           
           {[
-            { role: 'body' as const, label: 'Body Font [SERIF / SANS]', current: bodyFont },
-            { role: 'heading' as const, label: 'Heading Font', current: headingFont },
-            { role: 'ui' as const, label: 'UI & Sidebar Font', current: uiFontRole },
-            { role: 'mono' as const, label: 'Monospace / Code Font', current: monoFont },
+            { role: 'body' as const, label: t(lang, 'bodyFontRole'), current: bodyFont },
+            { role: 'heading' as const, label: t(lang, 'headingFontRole'), current: headingFont },
+            { role: 'ui' as const, label: t(lang, 'uiFontRole'), current: uiFontRole },
+            { role: 'mono' as const, label: t(lang, 'monoFontRole'), current: monoFont },
           ].map(({ role, label, current }) => (
             <div key={role} style={{ background: c.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: 10, borderRadius: 8, border: `1px solid ${c.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -241,7 +244,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
         <>
           <input
             type="text"
-            placeholder="Search fonts across Serif, Sans-Serif, Monospace..."
+            placeholder={t(lang, 'searchFontsPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -255,7 +258,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
           />
           <input
             type="text"
-            placeholder="Preview text..."
+            placeholder={t(lang, 'previewTextPlaceholder')}
             value={preview}
             onChange={(e) => setPreview(e.target.value)}
             style={{
@@ -345,7 +348,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
                           onMouseEnter={(e) => { e.currentTarget.style.background = c.accent; e.currentTarget.style.color = '#ffffff'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = c.accent; }}
                         >
-                          ✦ Select
+                          ✦ {t(lang, 'selectFont')}
                         </button>
                       </div>
                     </div>
@@ -372,7 +375,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
           style={{ background: c.surface, border: `1px solid ${c.border}`, color: c.text, fontFamily: uiFont }}
         >
           <div className="flex items-center justify-between pb-3 mb-3" style={{ borderBottom: `1px solid ${c.borderFaint}` }}>
-            <h3 className="font-semibold text-sm uppercase tracking-wider">Typography & Google Fonts Engine</h3>
+            <h3 className="font-semibold text-sm uppercase tracking-wider">{t(lang, 'googleFontsEngine')}</h3>
             <button
               onClick={onClose}
               className="px-2 py-1 rounded-md text-sm hover:opacity-75 transition-opacity"

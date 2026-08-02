@@ -4,15 +4,20 @@ import { format } from 'date-fns';
 import { Project, ThemeColors, Folder } from './types';
 import { db, getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAllFoldersFromDB, saveFolderToDB } from './db';
 
+import { Lang, t } from './i18n';
+
 interface WelcomeScreenProps {
   theme: ThemeColors;
   uiFont: string;
+  lang?: Lang;
   onOpenProject: (projectId: string, pageId?: string) => void;
   onImport: () => void;
   onExportAll: () => void;
+  onOpenGithubCloudSave?: () => void;
+  refreshTrigger?: number;
 }
 
-function WelcomeScreen({ theme, uiFont, onOpenProject, onImport, onExportAll }: WelcomeScreenProps) {
+function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, refreshTrigger }: WelcomeScreenProps) {
     
   const [projects, setProjects] = useState<Project[]>([]);
   const activeProjects = projects.filter(p => !p.isDeleted);
@@ -45,7 +50,7 @@ function WelcomeScreen({ theme, uiFont, onOpenProject, onImport, onExportAll }: 
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, refreshTrigger]);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -240,40 +245,71 @@ function WelcomeScreen({ theme, uiFont, onOpenProject, onImport, onExportAll }: 
 
       {/* Sidebar Navigation (Responsive: Header bar on mobile, left column on md+) */}
       <div 
-        className="w-full md:w-64 flex-shrink-0 flex flex-row md:flex-col pt-4 md:pt-12 px-4 sm:px-6 pb-4 md:pb-0 border-b md:border-b-0 md:border-r items-center md:items-start justify-between md:justify-start gap-3"
+        className="w-full md:w-64 flex-shrink-0 flex flex-row md:flex-col pt-4 md:pt-12 px-4 sm:px-6 pb-4 md:pb-6 border-b md:border-b-0 md:border-r items-center md:items-start justify-between md:justify-between gap-3"
         style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface }}
       >
-        <div className="mb-0 md:mb-10 px-0 md:px-2">
-          <h2 className="text-lg md:text-xl font-medium tracking-tight" style={{ color: theme.text }}>Workspace</h2>
+        <div className="flex flex-row md:flex-col items-center md:items-start gap-3 md:gap-10 w-full">
+          <div className="mb-0 md:mb-0 px-0 md:px-2">
+            <h2 className="text-lg md:text-xl font-medium tracking-tight" style={{ color: theme.text }}>Workspace</h2>
+          </div>
+
+          <nav className="flex flex-row md:flex-col gap-2 w-full">
+            <button 
+              onClick={() => setTab('active')} 
+              className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
+              style={{ 
+                backgroundColor: tab === 'active' ? theme.accentLight : 'transparent',
+                borderColor: tab === 'active' ? theme.border : 'transparent',
+                color: tab === 'active' ? theme.text : theme.textMuted
+              }}
+            >
+              <Home size={16} strokeWidth={tab === 'active' ? 2 : 1.5} />
+              <span className="font-medium text-xs md:text-sm">Active</span>
+            </button>
+            
+            <button 
+              onClick={() => setTab('trash')} 
+              className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
+              style={{ 
+                backgroundColor: tab === 'trash' ? theme.accentLight : 'transparent',
+                borderColor: tab === 'trash' ? theme.border : 'transparent',
+                color: tab === 'trash' ? theme.text : theme.textMuted
+              }}
+            >
+              <Trash2 size={16} strokeWidth={tab === 'trash' ? 2 : 1.5} />
+              <span className="font-medium text-xs md:text-sm">Trash</span>
+            </button>
+          </nav>
         </div>
 
-        <nav className="flex flex-row md:flex-col gap-2">
-          <button 
-            onClick={() => setTab('active')} 
-            className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
-            style={{ 
-              backgroundColor: tab === 'active' ? theme.accentLight : 'transparent',
-              borderColor: tab === 'active' ? theme.border : 'transparent',
-              color: tab === 'active' ? theme.text : theme.textMuted
-            }}
-          >
-            <Home size={16} strokeWidth={tab === 'active' ? 2 : 1.5} />
-            <span className="font-medium text-xs md:text-sm">Active</span>
-          </button>
-          
-          <button 
-            onClick={() => setTab('trash')} 
-            className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
-            style={{ 
-              backgroundColor: tab === 'trash' ? theme.accentLight : 'transparent',
-              borderColor: tab === 'trash' ? theme.border : 'transparent',
-              color: tab === 'trash' ? theme.text : theme.textMuted
-            }}
-          >
-            <Trash2 size={16} strokeWidth={tab === 'trash' ? 2 : 1.5} />
-            <span className="font-medium text-xs md:text-sm">Trash</span>
-          </button>
-        </nav>
+        {/* GitHub Cloud Save UI in bottom left area */}
+        {onOpenGithubCloudSave && (
+          <div className="w-full pt-4 mt-auto border-t" style={{ borderColor: theme.borderFaint }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider block mb-2 opacity-60 hidden md:block" style={{ color: theme.textFaint }}>
+              {t(lang, 'githubCloudSaveTitle')}
+            </span>
+            <button
+              onClick={onOpenGithubCloudSave}
+              className="w-full px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-between gap-2 transition-all cursor-pointer shadow-sm hover:shadow"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.isDark ? 'rgba(99, 102, 241, 0.12)' : '#f5f3ff',
+                color: theme.isDark ? '#a5b4fc' : '#4f46e5',
+                fontFamily: uiFont,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = theme.border }}
+            >
+              <div className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+                <span>{t(lang, 'cloudSave')}</span>
+              </div>
+              <span className="text-[10px] opacity-80">🔒</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Content Area */}

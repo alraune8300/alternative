@@ -136,7 +136,7 @@ function Toolbar({
         onMouseDown={e => e.preventDefault()}
         onClick={onUndo}
         disabled={!canUndo}
-        title="Undo (Ctrl+Z)"
+        title={t.undo || 'Undo (Ctrl+Z)'}
         style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: canUndo ? 'pointer' : 'default', opacity: canUndo ? 1 : 0.4, color: theme.text, fontFamily: uiFont, fontSize: '0.85rem' }}
       >
         ⟲
@@ -146,7 +146,7 @@ function Toolbar({
         onMouseDown={e => e.preventDefault()}
         onClick={onRedo}
         disabled={!canRedo}
-        title="Redo (Ctrl+Y)"
+        title={t.redo || 'Redo (Ctrl+Y)'}
         style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: canRedo ? 'pointer' : 'default', opacity: canRedo ? 1 : 0.4, color: theme.text, fontFamily: uiFont, fontSize: '0.85rem' }}
       >
         ⟳
@@ -324,7 +324,7 @@ function Toolbar({
           <ToolBtn
             onClick={onToggleFocusMode}
             icon={isFocusMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            label={isFocusMode ? 'Exit Focus Mode' : 'Focus Mode'}
+            label={isFocusMode ? (t.exitFocus || 'Exit Focus') : (t.focus || 'Focus')}
             active={isFocusMode}
           />
         )}
@@ -332,7 +332,7 @@ function Toolbar({
           <ToolBtn
             onClick={onTogglePreviewMode}
             icon={<BookOpen size={16} />}
-            label={isPreviewMode ? 'Exit Preview Mode' : 'Preview Mode'}
+            label={t.preview || 'Preview'}
             active={isPreviewMode}
           />
         )}
@@ -340,7 +340,7 @@ function Toolbar({
           <ToolBtn
             onClick={onOpenGithubCloudSave}
             icon={<Cloud size={16} className="text-indigo-400" />}
-            label="GitHub Cloud Save (Secret Code)"
+            label={t.cloudSave || 'Cloud Save'}
           />
         )}
         {onToggleSettings && (
