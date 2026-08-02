@@ -149,8 +149,8 @@ export default function App() {
 
   useEffect(() => {
     const handleResize = () => {
-      const sidebarWidth = (sidebarOpen && window.innerWidth >= 1024) ? 260 : 0;
-      const rightPanelWidth = (rightOpen && window.innerWidth >= 1024) ? 300 : 0;
+      const sidebarWidth = (sidebarOpen && window.innerWidth >= 768) ? 260 : 0;
+      const rightPanelWidth = (rightOpen && window.innerWidth >= 768) ? 300 : 0;
       const padding = window.innerWidth >= 640 ? 48 : 32;
       const available = window.innerWidth - sidebarWidth - rightPanelWidth - padding;
       setContainerWidth(available);
@@ -274,7 +274,7 @@ export default function App() {
     if (!viewport) return;
 
     const updateToolbarPosition = () => {
-      if (window.innerWidth < 1024) {
+      if (window.innerWidth < 768) {
         setMobileRibbonStyle({
           position: 'fixed',
           top: `${viewport.offsetTop}px`,
@@ -1601,14 +1601,14 @@ export default function App() {
     >
       {/* Mobile/Tablet backdrop for sidebar */}
       {sidebarOpen && !isFocusMode && !isPreviewMode && (
-        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Left Panel with fluid width, smooth slide transitions & adaptive graphic scaling */}
       <div
         className={`
-          fixed lg:relative top-0 left-0 h-full z-40 lg:z-auto flex-shrink-0
-          transition-all duration-300 ease-in-out transform shadow-2xl lg:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
+          fixed md:relative top-0 left-0 h-full z-40 md:z-auto flex-shrink-0
+          transition-all duration-300 ease-in-out transform shadow-2xl md:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
           ${sidebarOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[260px]' : '-translate-x-full opacity-0 w-0 pointer-events-none'}
         `}
       >
@@ -1626,7 +1626,7 @@ export default function App() {
           onNewProject={handleCreateNewProject}
           onRenameProject={handleRenameProject}
           onDeleteProject={handleDeleteProject}
-          onSelectPage={(id: string) => { setActivePageId(id); if (window.innerWidth < 1024) setSidebarOpen(false); }}
+          onSelectPage={(id: string) => { setActivePageId(id); if (window.innerWidth < 768) setSidebarOpen(false); }}
           onNewPage={addPage}
           onDeletePage={deletePage}
           onRenamePage={renamePage}
@@ -1670,7 +1670,7 @@ export default function App() {
               ...mobileRibbonStyle
             }}
           >
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <Toolbar
                 editor={editorInstance as TiptapEditorType}
                 theme={theme}
@@ -1723,7 +1723,7 @@ export default function App() {
               onClick={() => { setShowRibbon(false); LS.set('kgv-show-ribbon', 'false'); }}
               title="Hide Format Ribbon"
               aria-label="Hide Format Ribbon"
-              className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-2 cursor-pointer"
+              className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-2 cursor-pointer shrink-0"
               style={{ color: theme.muted }}
             >
               <Minimize2 size={15} />
@@ -1800,7 +1800,7 @@ export default function App() {
         <div className={`flex-1 overflow-y-auto kgv-scroll kgv-momentum-scroll kgv-hardware-accelerated transition-all duration-300 ease-in-out flex flex-col items-center pb-36 px-3 sm:px-6 ${
           (isFocusMode || isPreviewMode) 
             ? 'pt-12 sm:pt-16 md:pt-20' 
-            : (showRibbon ? 'pt-20 lg:pt-5' : 'pt-3 sm:pt-4 md:pt-5')
+            : (showRibbon ? 'pt-20 md:pt-5' : 'pt-3 sm:pt-4 md:pt-5')
         }`}>
           <div className="w-full flex flex-col items-center transition-all duration-200" style={{ zoom: zoomPercent / 100 }}>
           {(() => {
@@ -2066,12 +2066,12 @@ export default function App() {
 
       {/* Right Panel with fluid width, smooth slide transitions & backdrop-blur edge */}
       {rightOpen && !isFocusMode && !isPreviewMode && (
-        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setRightOpen(false)} />
+        <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setRightOpen(false)} />
       )}
       <div
         className={`
-          fixed lg:relative top-0 right-0 h-full z-40 lg:z-auto flex-shrink-0
-          transition-all duration-300 ease-in-out transform shadow-2xl lg:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
+          fixed md:relative top-0 right-0 h-full z-40 md:z-auto flex-shrink-0
+          transition-all duration-300 ease-in-out transform shadow-2xl md:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
           ${rightOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[300px]' : 'translate-x-full opacity-0 w-0 pointer-events-none'}
         `}
       >

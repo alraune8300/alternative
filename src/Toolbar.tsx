@@ -116,7 +116,7 @@ function Toolbar({
 
   return (
     <div
-      className="sticky top-0 z-10 flex items-center flex-nowrap lg:flex-wrap overflow-x-auto lg:overflow-x-visible scrollbar-none gap-1 px-3 py-2 select-none"
+      className="sticky top-0 z-10 flex items-center flex-nowrap md:flex-wrap overflow-x-auto md:overflow-x-visible scrollbar-none gap-1 px-3 py-2 select-none"
       style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, fontFamily: `'${uiFont}', sans-serif` }}
     >
       {onToggleSidebar && (
@@ -165,7 +165,7 @@ function Toolbar({
           <select
             value={currentFont}
             onChange={(e) => onFontChange(e.target.value)}
-            className="text-xs py-1.5 px-2 rounded-md outline-none cursor-pointer mr-1 max-w-[140px]"
+            className="text-xs py-1.5 px-2 rounded-md outline-none cursor-pointer mr-1 max-w-[140px] shrink-0"
             style={{ backgroundColor: theme.isDark ? theme.surface : theme.accentSoft, color: theme.text, border: `1px solid ${theme.border}` }}
             title={t.fontName || 'Font Family'}
           >
@@ -194,7 +194,7 @@ function Toolbar({
         );
       })()}
 
-      <div className="flex items-center gap-0.5 mr-1">
+      <div className="flex items-center gap-0.5 mr-1 shrink-0">
         <ToolBtn onClick={() => onSizeChange(-1)} icon={<Minus size={13} />} label="-" />
         <input
           type="text"
