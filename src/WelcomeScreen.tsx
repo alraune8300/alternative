@@ -317,8 +317,8 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                 <AlertCircle size={20} strokeWidth={2} />
               </div>
               <div>
-                <h3 className="font-semibold text-sm" style={{ color: theme.text }}>Permanently Delete</h3>
-                <p className="text-xs mt-1" style={{ color: theme.textMuted }}>Are you sure? This action cannot be undone.</p>
+                <h3 className="font-semibold text-sm" style={{ color: theme.text }}>{t(lang, 'deleteConfirmTitle')}</h3>
+                <p className="text-xs mt-1" style={{ color: theme.textMuted }}>{t(lang, 'deleteConfirmDesc')}</p>
               </div>
             </div>
             
@@ -328,13 +328,13 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                 className="px-4 py-2 rounded-lg text-xs font-medium transition-colors"
                 style={{ color: theme.textMuted,   }}
               >
-                Cancel
+                {t(lang, 'cancel')}
               </button>
               <button 
                 onClick={executeHardDelete}
                 className="px-4 py-2 rounded-lg text-xs font-medium text-white transition-colors hover:bg-red-600 bg-red-500"
               >
-                Confirm Delete
+                {t(lang, 'confirmDelete')}
               </button>
             </div>
           </div>
@@ -349,7 +349,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
       >
         <div className="flex flex-row md:flex-col items-center md:items-start gap-3 md:gap-10 w-full">
           <div className="mb-0 md:mb-0 px-0 md:px-2">
-            <h2 className="text-lg md:text-xl font-medium tracking-tight" style={{ color: theme.text }}>Workspace</h2>
+            <h2 className="text-lg md:text-xl font-medium tracking-tight" style={{ color: theme.text }}>{t(lang, 'workspace')}</h2>
           </div>
 
           <nav className="flex flex-row md:flex-col gap-2 w-full">
@@ -363,7 +363,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
               }}
             >
               <Home size={16} strokeWidth={tab === 'active' ? 2 : 1.5} />
-              <span className="font-medium text-xs md:text-sm">Active</span>
+              <span className="font-medium text-xs md:text-sm">{t(lang, 'active')}</span>
             </button>
             
             <button 
@@ -376,7 +376,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
               }}
             >
               <Trash2 size={16} strokeWidth={tab === 'trash' ? 2 : 1.5} />
-              <span className="font-medium text-xs md:text-sm">Trash</span>
+              <span className="font-medium text-xs md:text-sm">{t(lang, 'trash')}</span>
             </button>
           </nav>
         </div>
@@ -416,7 +416,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
             {timeGreeting},
           </h1>
           <p className="text-xl font-light" style={{ color: theme.textFaint }}>
-            What are we writing today?
+            {t(lang, 'whatAreWeWriting')}
           </p>
         </div>
 
@@ -437,7 +437,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
               >
                 <Plus size={15} strokeWidth={1.5} />
-                <span>New Project</span>
+                <span>{t(lang, 'newProject')}</span>
               </button>
 
               <button 
@@ -452,7 +452,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
               >
                 <FolderOpen size={15} strokeWidth={1.5} />
-                <span>New Folder</span>
+                <span>{t(lang, 'newFolder')}</span>
               </button>
 
               <div className="h-4 w-[1px] mx-1" style={{ backgroundColor: theme.borderFaint }} />
@@ -460,25 +460,25 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
               <button 
                 onClick={onImport} 
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer text-xs" 
-                title="Quick Import (.txt, .md, .docx)"
+                title={t(lang, 'importDocumentBtn')}
                 style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface, color: theme.textMuted }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
               >
                 <Upload size={14} strokeWidth={1.5} />
-                <span className="hidden sm:inline">Import Document</span>
+                <span className="hidden sm:inline">{t(lang, 'importDocumentBtn')}</span>
               </button>
 
               <button 
                 onClick={onExportAll} 
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer text-xs" 
-                title="Quick Bulk Export"
+                title={t(lang, 'exportDocumentsBtn')}
                 style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface, color: theme.textMuted }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
               >
                 <Download size={14} strokeWidth={1.5} />
-                <span className="hidden sm:inline">Export Documents</span>
+                <span className="hidden sm:inline">{t(lang, 'exportDocumentsBtn')}</span>
               </button>
             </div>
 
@@ -593,7 +593,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
         {/* Breadcrumbs */}
         {tab === 'active' && currentFolderId !== null && (
           <div className="w-full max-w-5xl mb-4 flex items-center gap-2 text-sm" style={{ color: theme.textMuted }}>
-            <button onClick={() => setCurrentFolderId(null)} className="hover:underline">Home</button>
+            <button onClick={() => setCurrentFolderId(null)} className="hover:underline">{t(lang, 'home')}</button>
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={b.id}>
                 <span>/</span>
@@ -633,7 +633,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
             >
               <FileText size={32} className="mb-4" strokeWidth={1.5} style={{ color: theme.textFaint }} />
               <p className="font-light text-sm" style={{ color: theme.textMuted }}>
-                {tab === 'active' ? 'No projects or folders found.' : 'Trash is empty.'}
+                {tab === 'active' ? t(lang, 'noProjectsFound') : t(lang, 'trashIsEmpty')}
               </p>
             </div>
           ) : (
@@ -753,7 +753,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                         </div>
                       ) : (
                         <h3 className="text-sm font-medium tracking-wide truncate" style={{ color: theme.text }}>
-                          {project.title || 'Untitled Project'}
+                          {project.title || t(lang, 'untitledProject')}
                         </h3>
                       )}
                     </div>
@@ -761,7 +761,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
 
                   {/* Sub-Metadata Line */}
                   <div className="mt-3 flex items-center gap-2 text-[10px] font-light tracking-wider uppercase ml-6" style={{ color: theme.textFaint }}>
-                    <span>{project.pages.length} {project.pages.length === 1 ? 'page' : 'pages'}</span>
+                    <span>{project.pages.length} {project.pages.length === 1 ? t(lang, 'pageSingular') : t(lang, 'pagePlural')}</span>
                     <span>•</span>
                     <span>{format(new Date(project.lastModified || project.createdAt || Date.now()), 'MMM d, yyyy')}</span>
                   </div>
@@ -769,7 +769,7 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                   {/* Content Snippet */}
                   {viewMode === 'grid' && project.pages[0] && tab === 'active' && (
                     <div className="mt-3 pt-3 border-t text-xs font-light leading-relaxed line-clamp-3" style={{ borderColor: theme.borderFaint, color: theme.textMuted }}>
-                      {project.pages[0].content.replace(/<[^>]*>?/gm, '').trim().slice(0, 150) || 'Empty document...'}
+                      {project.pages[0].content.replace(/<[^>]*>?/gm, '').trim().slice(0, 150) || t(lang, 'emptyDocument')}
                     </div>
                   )}
 
@@ -777,19 +777,19 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
                   <div className="absolute top-3 right-3 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {tab === 'active' ? (
                       <>
-                        <button onClick={(e) => handleStartEditProject(project.id, project.title, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Rename">
+                        <button onClick={(e) => handleStartEditProject(project.id, project.title, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title={t(lang, 'rename')}>
                           <Edit2 size={13} />
                         </button>
-                        <button onClick={(e) => handleSoftDeleteProject(project, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Move to Trash">
+                        <button onClick={(e) => handleSoftDeleteProject(project, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title={t(lang, 'moveToTrash')}>
                           <Trash2 size={13} />
                         </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={(e) => handleRestoreProject(project, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Restore">
+                        <button onClick={(e) => handleRestoreProject(project, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title={t(lang, 'restore')}>
                           <RotateCcw size={13} />
                         </button>
-                        <button onClick={(e) => promptHardDelete('project', project.id, project.title, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Permanently Delete">
+                        <button onClick={(e) => promptHardDelete('project', project.id, project.title, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title={t(lang, 'deleteForever')}>
                           <Trash2 size={13} />
                         </button>
                       </>

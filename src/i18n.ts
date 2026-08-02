@@ -182,9 +182,47 @@ interface Strings {
   viewList: string
   quickExportBackup: string
   quickImportBackup: string
+  deleteConfirmTitle: string
+  deleteConfirmDesc: string
+  cancel: string
+  confirmDelete: string
+  workspace: string
+  active: string
+  trash: string
+  whatAreWeWriting: string
+  newProject: string
+  newFolder: string
+  importDocumentBtn: string
+  exportDocumentsBtn: string
+  home: string
+  noProjectsFound: string
+  trashIsEmpty: string
+  untitledProject: string
+  pageSingular: string
+  pagePlural: string
+  emptyDocument: string
+  moveToTrash: string
+  enterSecretCodePlaceholder: string
+  pleaseEnterToken: string
+  connectionSuccess: string
+  connectionFailed: string
+  pleaseEnterTokenBeforeSave: string
+  pleaseEnterSecretCode: string
+  saveSuccess: string
+  saveFailed: string
+  pleaseEnterGistId: string
+  pleaseEnterSecretCodeDecrypt: string
+  decryptSuccess: string
+  decryptFailed: string
+  authenticatedAs: string
+  gistIdLabel: string
+  viewGist: string
+  gistIdPlaceholder: string
+  copyGistId: string
+  lastSynced: string
 }
 
-export const translations: Record<Lang, Strings> = {
+export const translations: { en: Strings } & Record<Lang, Partial<Strings>> = {
   en: {
     goodMorning: 'Good morning',
     goodAfternoon: 'Good afternoon',
@@ -367,6 +405,44 @@ export const translations: Record<Lang, Strings> = {
     viewList: 'List',
     quickExportBackup: 'Export Backup (JSON)',
     quickImportBackup: 'Import Backup (JSON)',
+    deleteConfirmTitle: 'Permanently Delete',
+    deleteConfirmDesc: 'Are you sure? This action cannot be undone.',
+    cancel: 'Cancel',
+    confirmDelete: 'Confirm Delete',
+    workspace: 'Workspace',
+    active: 'Active',
+    trash: 'Trash',
+    whatAreWeWriting: 'What are we writing today?',
+    newProject: 'New Project',
+    newFolder: 'New Folder',
+    importDocumentBtn: 'Import Document',
+    exportDocumentsBtn: 'Export Documents',
+    home: 'Home',
+    noProjectsFound: 'No projects or folders found.',
+    trashIsEmpty: 'Trash is empty.',
+    untitledProject: 'Untitled Project',
+    pageSingular: 'page',
+    pagePlural: 'pages',
+    emptyDocument: 'Empty document...',
+    moveToTrash: 'Move to Trash',
+    enterSecretCodePlaceholder: 'Enter secret code...',
+    pleaseEnterToken: 'Please enter GitHub Personal Access Token.',
+    connectionSuccess: 'Successfully connected GitHub account:',
+    connectionFailed: 'Failed to connect GitHub.',
+    pleaseEnterTokenBeforeSave: 'Please enter GitHub Personal Access Token before saving.',
+    pleaseEnterSecretCode: 'Please enter Secret Code (Passcode) to encrypt your data.',
+    saveSuccess: 'Data successfully encrypted and saved to GitHub Private Gist!',
+    saveFailed: 'Failed to save data to GitHub.',
+    pleaseEnterGistId: 'Please enter Gist ID or click Backup to create your first backup.',
+    pleaseEnterSecretCodeDecrypt: 'Please enter Secret Code to decrypt data.',
+    decryptSuccess: 'Successfully decrypted! Restored {projectCount} projects from GitHub Cloud.',
+    decryptFailed: 'Failed to restore from GitHub.',
+    authenticatedAs: 'Authenticated as:',
+    gistIdLabel: 'Gist ID (Cloud Backup)',
+    viewGist: 'View Gist',
+    gistIdPlaceholder: 'Auto-generated on first save (or enter Gist ID from another device)',
+    copyGistId: 'Copy Gist ID',
+    lastSynced: 'Last synced:',
   },
   vi: {
     goodMorning: 'Chào buổi sáng',
@@ -550,6 +626,44 @@ export const translations: Record<Lang, Strings> = {
     viewList: 'Danh sách',
     quickExportBackup: 'Xuất dữ liệu sao lưu JSON',
     quickImportBackup: 'Nhập dữ liệu sao lưu JSON',
+    deleteConfirmTitle: 'Xoá vĩnh viễn',
+    deleteConfirmDesc: 'Bạn có chắc chắn? Hành động này không thể hoàn tác.',
+    cancel: 'Hủy',
+    confirmDelete: 'Xác nhận xoá',
+    workspace: 'Không gian làm việc',
+    active: 'Hoạt động',
+    trash: 'Thùng rác',
+    whatAreWeWriting: 'Hôm nay chúng ta sẽ viết gì?',
+    newProject: 'Dự án mới',
+    newFolder: 'Thư mục mới',
+    importDocumentBtn: 'Nhập tài liệu',
+    exportDocumentsBtn: 'Xuất tài liệu',
+    home: 'Trang chủ',
+    noProjectsFound: 'Không tìm thấy dự án hoặc thư mục nào.',
+    trashIsEmpty: 'Thùng rác trống.',
+    untitledProject: 'Dự án không tên',
+    pageSingular: 'trang',
+    pagePlural: 'trang',
+    emptyDocument: 'Tài liệu trống...',
+    moveToTrash: 'Di chuyển vào thùng rác',
+    enterSecretCodePlaceholder: 'Nhập mã bí mật...',
+    pleaseEnterToken: 'Vui lòng nhập GitHub Personal Access Token.',
+    connectionSuccess: 'Kết nối thành công tài khoản GitHub:',
+    connectionFailed: 'Kết nối GitHub thất bại.',
+    pleaseEnterTokenBeforeSave: 'Vui lòng nhập GitHub Personal Access Token trước khi lưu.',
+    pleaseEnterSecretCode: 'Vui lòng nhập Mã bí mật (Secret Code) để mã hóa dữ liệu.',
+    saveSuccess: 'Đã mã hóa dữ liệu thành công bằng Mã bí mật và lưu lên GitHub Private Gist!',
+    saveFailed: 'Lưu dữ liệu lên GitHub thất bại.',
+    pleaseEnterGistId: 'Vui lòng nhập Gist ID hoặc bấm "Lưu đám mây" để tạo bản lưu đầu tiên.',
+    pleaseEnterSecretCodeDecrypt: 'Vui lòng nhập Mã bí mật để giải mã dữ liệu.',
+    decryptSuccess: 'Giải mã thành công bằng Mã bí mật! Đã khôi phục {projectCount} dự án từ GitHub Cloud.',
+    decryptFailed: 'Khôi phục từ GitHub thất bại.',
+    authenticatedAs: 'Đã xác thực:',
+    gistIdLabel: 'Gist ID (Bản lưu Cloud)',
+    viewGist: 'Xem Gist',
+    gistIdPlaceholder: 'Tự tạo khi lưu lần đầu (hoặc nhập Gist ID từ máy khác)',
+    copyGistId: 'Sao chép Gist ID',
+    lastSynced: 'Lần đồng bộ gần nhất:',
   },
   fr: {
     goodMorning: 'Bonjour',

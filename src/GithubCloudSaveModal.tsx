@@ -95,7 +95,7 @@ export default function GithubCloudSaveModal({
 
   const handleTestToken = async () => {
     if (!config.githubToken.trim()) {
-      setStatusMsg({ type: 'error', text: 'Vui lòng nhập GitHub Personal Access Token.' });
+      setStatusMsg({ type: 'error', text: t(lang, 'pleaseEnterToken') });
       return;
     }
     setLoading(true);
@@ -107,11 +107,11 @@ export default function GithubCloudSaveModal({
       handleSaveConfig();
       setStatusMsg({
         type: 'success',
-        text: `Kết nối thành công tài khoản GitHub: @${u.username}`,
+        text: `${t(lang, 'connectionSuccess')} @${u.username}`,
       });
     } catch (err: unknown) {
       setGithubUser(null);
-      const msg = err instanceof Error ? err.message : 'Kết nối GitHub thất bại.';
+      const msg = err instanceof Error ? err.message : t(lang, 'connectionFailed');
       setStatusMsg({ type: 'error', text: msg });
     } finally {
       setLoading(false);
@@ -121,11 +121,11 @@ export default function GithubCloudSaveModal({
 
   const handlePush = async () => {
     if (!config.githubToken.trim()) {
-      setStatusMsg({ type: 'error', text: 'Vui lòng nhập GitHub Personal Access Token trước khi lưu.' });
+      setStatusMsg({ type: 'error', text: t(lang, 'pleaseEnterTokenBeforeSave') });
       return;
     }
     if (!config.secretCode.trim()) {
-      setStatusMsg({ type: 'error', text: 'Vui lòng nhập Mã bí mật (Secret Code) để mã hóa dữ liệu.' });
+      setStatusMsg({ type: 'error', text: t(lang, 'pleaseEnterSecretCode') });
       return;
     }
 
@@ -137,10 +137,10 @@ export default function GithubCloudSaveModal({
       setConfig(prev => ({ ...prev, gistId: res.gistId, lastSyncedAt: res.updatedAt }));
       setStatusMsg({
         type: 'success',
-        text: 'Đã mã hóa dữ liệu thành công bằng Mã bí mật và lưu lên GitHub Private Gist!',
+        text: t(lang, 'saveSuccess'),
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lưu dữ liệu lên GitHub thất bại.';
+      const msg = err instanceof Error ? err.message : t(lang, 'saveFailed');
       setStatusMsg({ type: 'error', text: msg });
     } finally {
       setLoading(false);
@@ -150,15 +150,15 @@ export default function GithubCloudSaveModal({
 
   const handlePull = async () => {
     if (!config.githubToken.trim()) {
-      setStatusMsg({ type: 'error', text: 'Vui lòng nhập GitHub Personal Access Token.' });
+      setStatusMsg({ type: 'error', text: t(lang, 'pleaseEnterToken') });
       return;
     }
     if (!config.gistId?.trim()) {
-      setStatusMsg({ type: 'error', text: 'Vui lòng nhập Gist ID hoặc bấm "Lưu đám mây" để tạo bản lưu đầu tiên.' });
+      setStatusMsg({ type: 'error', text: t(lang, 'pleaseEnterGistId') });
       return;
     }
     if (!config.secretCode.trim()) {
-      setStatusMsg({ type: 'error', text: 'Vui lòng nhập Mã bí mật (Secret Code) để giải mã dữ liệu.' });
+      setStatusMsg({ type: 'error', text: t(lang, 'pleaseEnterSecretCodeDecrypt') });
       return;
     }
 
@@ -170,13 +170,13 @@ export default function GithubCloudSaveModal({
       setConfig(prev => ({ ...prev, lastSyncedAt: new Date().toISOString() }));
       setStatusMsg({
         type: 'success',
-        text: `Giải mã thành công bằng Mã bí mật! Đã khôi phục ${res.projectCount} dự án từ GitHub Cloud.`,
+        text: t(lang, 'decryptSuccess').replace('{projectCount}', String(res.projectCount)),
       });
       if (onDataRestored) {
         onDataRestored();
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Khôi phục từ GitHub thất bại.';
+      const msg = err instanceof Error ? err.message : t(lang, 'decryptFailed');
       setStatusMsg({ type: 'error', text: msg });
     } finally {
       setLoading(false);
@@ -281,7 +281,7 @@ export default function GithubCloudSaveModal({
                 value={config.secretCode}
                 onChange={e => setConfig(prev => ({ ...prev, secretCode: e.target.value }))}
                 onBlur={handleSaveConfig}
-                placeholder="Nhập mã bí mật..."
+                placeholder={t(lang, 'enterSecretCodePlaceholder')}
                 className="w-full px-3 py-2 pr-9 text-xs rounded-lg border outline-none transition-all"
                 style={{
                   backgroundColor: inputBg,
@@ -368,7 +368,7 @@ export default function GithubCloudSaveModal({
 
             {githubUser && (
               <div className="mt-2 text-[11px] text-emerald-500 font-medium flex items-center gap-1">
-                <CheckCircle2 size={12} /> Đã xác thực: <span className="font-bold">@{githubUser}</span>
+                <CheckCircle2 size={12} /> {t(lang, 'authenticatedAs')} <span className="font-bold">@{githubUser}</span>
               </div>
             )}
           </div>
@@ -382,7 +382,7 @@ export default function GithubCloudSaveModal({
             }}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[11px] font-bold tracking-wider uppercase opacity-90">Gist ID (Bản lưu Cloud)</label>
+              <label className="text-[11px] font-bold tracking-wider uppercase opacity-90">{t(lang, 'gistIdLabel')}</label>
               {config.gistId && (
                 <a
                   href={`https://gist.github.com/${config.gistId}`}
@@ -391,7 +391,7 @@ export default function GithubCloudSaveModal({
                   className="text-[10px] opacity-70 hover:opacity-100 flex items-center gap-1"
                   style={{ color: textColor }}
                 >
-                  Xem Gist <ExternalLink size={9} />
+                  {t(lang, 'viewGist')} <ExternalLink size={9} />
                 </a>
               )}
             </div>
@@ -401,7 +401,7 @@ export default function GithubCloudSaveModal({
                 value={config.gistId || ''}
                 onChange={e => setConfig(prev => ({ ...prev, gistId: e.target.value }))}
                 onBlur={handleSaveConfig}
-                placeholder="Tự tạo khi lưu lần đầu (hoặc nhập Gist ID từ máy khác)"
+                placeholder={t(lang, 'gistIdPlaceholder')}
                 className="flex-1 px-3 py-1.5 text-xs rounded-lg border outline-none font-mono transition-all"
                 style={{
                   backgroundColor: inputBg,
@@ -415,7 +415,7 @@ export default function GithubCloudSaveModal({
                   onClick={copyGistIdToClipboard}
                   className="px-2.5 py-1.5 text-xs rounded-lg border flex items-center gap-1 transition-all cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
                   style={{ borderColor: borderColor, color: textColor }}
-                  title="Sao chép Gist ID"
+                  title={t(lang, 'copyGistId')}
                 >
                   {copiedGistId ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                 </button>
@@ -463,7 +463,7 @@ export default function GithubCloudSaveModal({
           {config.lastSyncedAt && (
             <div className="text-[10px] text-center flex items-center justify-center gap-1 pt-0.5 opacity-60" style={{ color: textMuted }}>
               <Cloud size={11} style={{ color: accentColor }} />
-              Lần đồng bộ gần nhất: {new Date(config.lastSyncedAt).toLocaleString('vi-VN')}
+              {t(lang, 'lastSynced')} {new Date(config.lastSyncedAt).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')}
             </div>
           )}
         </div>
