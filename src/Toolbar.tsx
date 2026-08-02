@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Eraser, Plus, Minus, ZoomIn,
   PanelLeft, Settings, Maximize2, Minimize2, BookOpen,
-  Divide
+  Divide, Cloud
 } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import type { ThemeColors } from './types';
@@ -42,6 +42,7 @@ type Props = {
   onZoomReset?: () => void;
   onZoomInputChange?: (val: string) => void;
   onZoomInputBlur?: () => void;
+  onOpenGithubCloudSave?: () => void;
 };
 
 function Toolbar({
@@ -56,6 +57,7 @@ function Toolbar({
   zoomPercent, zoomInput,
   onZoomIn, onZoomOut, onZoomReset,
   onZoomInputChange, onZoomInputBlur,
+  onOpenGithubCloudSave,
 }: Props) {
   const [sizeInput, setSizeInput] = useState<string>(String(selectedSize));
   const [, forceUpdate] = useState({});
@@ -332,6 +334,13 @@ function Toolbar({
             icon={<BookOpen size={16} />}
             label={isPreviewMode ? 'Exit Preview Mode' : 'Preview Mode'}
             active={isPreviewMode}
+          />
+        )}
+        {onOpenGithubCloudSave && (
+          <ToolBtn
+            onClick={onOpenGithubCloudSave}
+            icon={<Cloud size={16} className="text-indigo-400" />}
+            label="GitHub Cloud Save (Secret Code)"
           />
         )}
         {onToggleSettings && (

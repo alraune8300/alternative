@@ -236,8 +236,8 @@ function RightPanel(props: Record<string, unknown>) {
   const uiFont2 = (props.uiFont2 || props.uiFont || 'Inter') as string
   const monoFont2 = (props.monoFont2 || 'JetBrains Mono') as string
 
-  const customFontsProp = props.customFont as { family: string } | undefined
-  const customFonts: CustomFont[] = (props.customFonts as CustomFont[]) || (customFontsProp ? [{ id: 'cf-1', name: customFontsProp.family, fileName: customFontsProp.family }] : [])
+  const customFontsProp = props.customFont as { family?: string; name?: string; id?: string } | undefined
+  const customFonts: CustomFont[] = (props.customFonts as CustomFont[]) || (customFontsProp ? [{ id: customFontsProp.id || 'cf-1', name: customFontsProp.name || customFontsProp.family || 'CustomFont', family: customFontsProp.family || customFontsProp.name || 'CustomFont', fileName: customFontsProp.name || customFontsProp.family || 'CustomFont' }] : [])
 
   const onFontAssign = (props.onFontAssign as ((role: 'body' | 'heading' | 'ui' | 'mono', fontName: string) => void)) || ((role: 'body' | 'heading' | 'ui' | 'mono', fontName: string) => {
     if (role === 'body' || role === 'heading') {
@@ -1438,31 +1438,40 @@ ${content.split('\n\n').map(para => {
               <input
                 ref={fileInputRef} type="file" accept=".ttf,.otf,.woff,.woff2"
                 style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) onFontUpload(f) }}
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f) onFontUpload(f);
+                  e.target.value = '';
+                }}
               />
-              {customFonts.map(font => (
-                <div key={font.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '6px 8px', borderRadius: 6,
-                  background: c.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                  marginBottom: 4,
-                }}>
-                  <span style={{ fontFamily: `'${font.name}', sans-serif`, fontSize: '0.8rem', color: c.text }}>
-                    {font.name}
-                  </span>
-                  <button
-                    onClick={() => { if (font.id) onFontDelete(font.id) }}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: c.textFaint, fontSize: '0.8rem', transition: 'color 0.12s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
-                    onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {customFonts.map(font => {
+                const fontName = font.name || font.family || 'CustomFont';
+                const fontId = font.id || font.family || font.name || fontName;
+                return (
+                  <div key={fontId} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '6px 8px', borderRadius: 6,
+                    background: c.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                    marginBottom: 4,
+                  }}>
+                    <span style={{ fontFamily: `'${fontName}', sans-serif`, fontSize: '0.8rem', color: c.text }}>
+                      {fontName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onFontDelete(fontId)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: c.textFaint, fontSize: '0.8rem', transition: 'color 0.12s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
+                      onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

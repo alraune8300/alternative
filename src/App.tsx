@@ -15,6 +15,7 @@ import GoogleFontsPanel from './GoogleFontsPanel';
 import Editor from './Editor';
 import Toolbar from './Toolbar';
 import WelcomeScreen from './WelcomeScreen';
+import GithubCloudSaveModal from './GithubCloudSaveModal';
 import type { Document, Folder, ThemeColors, ThemeMode, CustomTheme, CustomFont, Lang, Project, Page, FormatState, PageFormat } from './types';
 import { PAPER_SIZES_PX } from './types';
 import { getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAppSettings, saveAppSettings } from './db';
@@ -46,19 +47,49 @@ function loadLang(): Lang {
 }
 function loadFontSize(): number { const v = LS.get('kgv-font-size'); return v ? parseInt(v, 10) : 18; }
 function loadCustomFont(): CustomFont | null { return LS.getJSON<CustomFont>('kgv-custom-font'); }
+function loadCustomFonts(): CustomFont[] {
+  const list = LS.getJSON<CustomFont[]>('kgv-custom-fonts');
+  if (Array.isArray(list) && list.length > 0) return list;
+  const single = loadCustomFont();
+  return single ? [single] : [];
+}
+
+export function injectCustomFontCSS(f: CustomFont) {
+  const familyName = (f.family || f.name || 'CustomFont').trim();
+  const styleId = `kgv-custom-font-style-${familyName.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+  let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
+  const cleanFamily = familyName.replace(/["']/g, '');
+  styleEl.textContent = `
+    @font-face {
+      font-family: "${cleanFamily}";
+      src: url("${f.dataUrl}");
+      font-display: swap;
+    }
+  `;
+}
 
 async function applyCustomFont(f: CustomFont): Promise<string> {
-  const lower = f.dataUrl.toLowerCase();
-  let format: string | undefined;
-  if (lower.includes('woff2')) format = 'woff2';
-  else if (lower.includes('woff')) format = 'woff';
-  else if (lower.includes('ttf') || lower.includes('octet-stream')) format = 'truetype';
-  else if (lower.includes('opentype')) format = 'opentype';
-  const source = format ? `url(${f.dataUrl}) format("${format}")` : `url(${f.dataUrl})`;
-  const fontFace = new FontFace(f.family, source);
-  await fontFace.load();
-  document.fonts.add(fontFace);
-  return f.family;
+  const cleanFamily = (f.family || f.name || 'CustomFont').replace(/["']/g, '').trim();
+  if (!cleanFamily || !f.dataUrl) return cleanFamily;
+
+  injectCustomFontCSS({ ...f, family: cleanFamily });
+
+  try {
+    if ('FontFace' in window) {
+      const fontFace = new FontFace(cleanFamily, `url(${f.dataUrl})`);
+      await fontFace.load();
+      document.fonts.add(fontFace);
+    }
+  } catch (err) {
+    console.warn(`FontFace API warning for font ${cleanFamily}:`, err);
+  }
+
+  return cleanFamily;
 }
 
 export default function App() {
@@ -71,7 +102,11 @@ export default function App() {
   const [customTheme, setCustomTheme] = useState<CustomTheme | null>(null);
   const [docFont, setDocFont] = useState(() => loadFont());
   const [uiFont, setUiFont] = useState('Inter');
-  const [customFont, setCustomFont] = useState<CustomFont | null>(null);
+  const [customFonts, setCustomFonts] = useState<CustomFont[]>(() => loadCustomFonts());
+  const [customFont, setCustomFont] = useState<CustomFont | null>(() => {
+    const list = loadCustomFonts();
+    return list.length > 0 ? list[list.length - 1] : null;
+  });
   const [lang, setLang] = useState<Lang>('vi');
   const [fontSize, setFontSize] = useState(18);
   const [apiKey, setApiKey] = useState('');
@@ -84,6 +119,7 @@ export default function App() {
 
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [zoomInput, setZoomInput] = useState<string>('100');
 
@@ -246,9 +282,14 @@ export default function App() {
 
   const availableFonts = useMemo(() => {
     const fonts = [...BUILTIN_FONTS];
-    if (customFont) fonts.unshift({ family: customFont.family, label: `${customFont.family} ${t.customFontSuffix}` });
+    customFonts.forEach((cf) => {
+      const fam = cf.family || cf.name;
+      if (fam && !fonts.some((f) => f.family === fam)) {
+        fonts.unshift({ family: fam, label: `${fam} (${t.customFontSuffix || 'Tùy chỉnh'})` });
+      }
+    });
     return fonts;
-  }, [customFont, t]);
+  }, [customFonts, t]);
   // Sync document body styles with the current active theme
   useEffect(() => {
     document.body.style.background = theme.bg;
@@ -287,8 +328,14 @@ export default function App() {
     setFontSize(loadFontSize());
     setApiKey(loadApiKey());
     reinjectSavedFonts();
-    const cf = loadCustomFont();
-    if (cf) { setCustomFont(cf); applyCustomFont(cf).catch(() => {}); }
+    const cfs = loadCustomFonts();
+    if (cfs.length > 0) {
+      setCustomFonts(cfs);
+      setCustomFont(cfs[cfs.length - 1]);
+      cfs.forEach((font) => {
+        applyCustomFont(font).catch(() => {});
+      });
+    }
 
     (async () => {
       let dbProjects: Project[] = [];
@@ -804,27 +851,79 @@ export default function App() {
   }, []);
 
   const handleUploadFont = useCallback(async (file: File) => {
-    const family = file.name.replace(/\.(ttf|otf|woff2?)$/i, '');
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Cannot read font file'));
-      reader.readAsDataURL(file);
-    });
-    const cf: CustomFont = { family, dataUrl };
-    await applyCustomFont(cf);
-    setCustomFont(cf);
-    LS.setJSON('kgv-custom-font', cf);
-    setDocFont(family);
-    LS.set('kgv-font', family);
-    setFormatState(prev => ({ ...prev, fontFam: family, headingFontFam: family }));
+    try {
+      if (!file) return;
+      const rawName = file.name.replace(/\.(ttf|otf|woff2?)$/i, '');
+      const family = rawName.trim() || 'CustomFont';
+
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string) || '');
+        reader.onerror = () => reject(new Error('Cannot read font file'));
+        reader.readAsDataURL(file);
+      });
+
+      if (!dataUrl) {
+        throw new Error('Data URL is empty');
+      }
+
+      const cf: CustomFont = {
+        id: 'font-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+        family,
+        name: family,
+        fileName: file.name,
+        dataUrl,
+      };
+
+      await applyCustomFont(cf);
+
+      setCustomFonts((prev) => {
+        const filtered = prev.filter((f) => (f.family || f.name) !== family);
+        const next = [...filtered, cf];
+        LS.setJSON('kgv-custom-fonts', next);
+        return next;
+      });
+
+      setCustomFont(cf);
+      LS.setJSON('kgv-custom-font', cf);
+
+      setDocFont(family);
+      LS.set('kgv-font', family);
+      setFormatState((prev) => ({ ...prev, fontFam: family, headingFontFam: family }));
+
+      window.dispatchEvent(new CustomEvent('kgv-docfont', { detail: family }));
+      window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: family }));
+    } catch (err) {
+      console.error('Upload custom font error:', err);
+      alert('Không thể tải font tùy chỉnh. Vui lòng thử tệp font khác (.ttf, .otf, .woff, .woff2).');
+    }
   }, []);
 
-  const handleRemoveCustomFont = useCallback(() => {
-    LS.set('kgv-custom-font', '');
-    try { localStorage.removeItem('kgv-custom-font'); } catch { /* ignore */ }
-    setCustomFont(null);
-    if (!BUILTIN_FONTS.some((f) => f.family === docFont)) { setDocFont('Merriweather'); LS.set('kgv-font', 'Merriweather'); }
+  const handleRemoveCustomFont = useCallback((idOrFamily?: string) => {
+    setCustomFonts((prev) => {
+      const next = prev.filter((f) => f.id !== idOrFamily && f.family !== idOrFamily && f.name !== idOrFamily);
+      LS.setJSON('kgv-custom-fonts', next);
+      const last = next[next.length - 1] || null;
+      setCustomFont(last);
+      if (last) {
+        LS.setJSON('kgv-custom-font', last);
+      } else {
+        try { localStorage.removeItem('kgv-custom-font'); } catch { /* ignore */ }
+      }
+      return next;
+    });
+
+    if (idOrFamily) {
+      const cleanTarget = idOrFamily.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const el = document.getElementById(`kgv-custom-font-style-${cleanTarget}`);
+      if (el) el.remove();
+    }
+
+    if (!idOrFamily || docFont === idOrFamily) {
+      setDocFont('Merriweather');
+      LS.set('kgv-font', 'Merriweather');
+      setFormatState((prev) => ({ ...prev, fontFam: 'Merriweather', headingFontFam: 'Merriweather' }));
+    }
   }, [docFont]);
 
   const handleImportFile = useCallback(async (file: File) => {
@@ -997,6 +1096,7 @@ export default function App() {
           onPermanentDelete={permanentDeletePage}
           onEmptyBin={emptyBin}
           onCloseSidebar={() => setSidebarOpen(false)}
+          onOpenGithubCloudSave={() => setGithubModalOpen(true)}
         />
       </div>
 
@@ -1041,6 +1141,7 @@ export default function App() {
                 onToggleSidebar={() => setSidebarOpen(v => !v)}
                 rightOpen={rightOpen}
                 onToggleSettings={() => setRightOpen(v => !v)}
+                onOpenGithubCloudSave={() => setGithubModalOpen(true)}
                 isFocusMode={isFocusMode}
                 onToggleFocusMode={handleToggleFocusMode}
                 isPreviewMode={isPreviewMode}
@@ -1296,6 +1397,7 @@ export default function App() {
           docFont={docFont}
           uiFont={uiFont}
           customFont={customFont}
+          customFonts={customFonts}
           lang={lang}
           t={t}
           wordCount={wordCount}
@@ -1484,6 +1586,25 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* GitHub Cloud Save Modal */}
+      <GithubCloudSaveModal
+        isOpen={githubModalOpen}
+        onClose={() => setGithubModalOpen(false)}
+        lang={lang}
+        uiFont={uiFont}
+        theme={theme}
+        onDataRestored={async () => {
+          const projs = await getAllProjectsFromDB();
+          setProjects(projs);
+          if (projs.length > 0) {
+            if (!projs.find(p => p.id === activeProjectId)) {
+              setActiveProjectId(projs[0].id);
+              setActivePageId(projs[0].pages[0]?.id || '');
+            }
+          }
+        }}
+      />
     </div>
   );
 }
