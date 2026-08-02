@@ -2,7 +2,8 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import mammoth from 'mammoth';
 import TurndownService from 'turndown';
-import { PageFormat, PAPER_SIZES_PX, Project } from './types';
+import { PageFormat, PAPER_SIZES_PX, Project, Folder } from './types';
+import { saveProjectToDB, saveFolderToDB } from './db';
 
 const turndownService = new TurndownService();
 
@@ -159,10 +160,84 @@ export function exportToMarkdownFile(title: string, contentHtml: string) {
   triggerDownload(blob, `${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.md`);
 }
 
-export function exportToJsonBackup(projects: Project[]) {
-  const data = { version: 1, exportedAt: Date.now(), projects };
+export function exportToJsonBackup(projects: Project[], folders?: Folder[]) {
+  const data = { version: 1, exportedAt: Date.now(), projects, folders: folders || [] };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
-  triggerDownload(blob, `ellipsus-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  triggerDownload(blob, `kgv-backup-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+export async function importJsonBackupFile(file: File): Promise<{ projectCount: number; folderCount: number }> {
+  const text = await file.text();
+  let data: Record<string, unknown> | Array<unknown>;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('Invalid JSON backup file format');
+  }
+
+  let projectsToSave: Project[] = [];
+  let foldersToSave: Folder[] = [];
+
+  if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as { projects?: unknown[] }).projects)) {
+    projectsToSave = (data as { projects: Project[] }).projects;
+    if (Array.isArray((data as { folders?: unknown[] }).folders)) {
+      foldersToSave = (data as { folders: Folder[] }).folders;
+    }
+  } else if (Array.isArray(data)) {
+    projectsToSave = data as Project[];
+  } else if (data && typeof data === 'object' && 'id' in data && ('pages' in data || 'title' in data)) {
+    projectsToSave = [data as unknown as Project];
+  } else if (data && typeof data === 'object' && 'documents' in data && Array.isArray((data as { documents?: unknown[] }).documents)) {
+    const docs = (data as { documents: Array<Record<string, unknown>> }).documents;
+    const pages = docs.map((d) => ({
+      id: (d.id as string) || 'page-' + Math.random().toString(36).substring(2, 8),
+      title: (d.title as string) || 'Untitled Document',
+      content: (d.content as string) || '',
+      isDraft: false,
+      createdAt: d.created_at ? new Date(d.created_at as string).toISOString() : new Date().toISOString(),
+      lastModified: d.updated_at ? new Date(d.updated_at as string).toISOString() : new Date().toISOString(),
+      folderId: (d.folder_id as string) || undefined,
+    }));
+    const proj: Project = {
+      id: 'proj-' + Date.now(),
+      title: 'Imported Backup',
+      pages,
+      drafts: [],
+      folders: [],
+      bin: [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    };
+    projectsToSave = [proj];
+  } else {
+    throw new Error('Unrecognized backup JSON data structure');
+  }
+
+  for (const f of foldersToSave) {
+    if (f && f.id && f.name) {
+      await saveFolderToDB(f);
+    }
+  }
+
+  let count = 0;
+  for (const p of projectsToSave) {
+    if (p && p.id && (p.title || p.pages)) {
+      const cleanProj: Project = {
+        ...p,
+        title: p.title || 'Untitled Project',
+        pages: Array.isArray(p.pages) ? p.pages : [],
+        drafts: Array.isArray(p.drafts) ? p.drafts : [],
+        folders: Array.isArray(p.folders) ? p.folders : [],
+        bin: Array.isArray(p.bin) ? p.bin : [],
+        createdAt: p.createdAt || new Date().toISOString(),
+        lastModified: p.lastModified || new Date().toISOString(),
+      };
+      await saveProjectToDB(cleanProj);
+      count++;
+    }
+  }
+
+  return { projectCount: count, folderCount: foldersToSave.length };
 }
 
 function triggerDownload(blob: Blob, filename: string) {

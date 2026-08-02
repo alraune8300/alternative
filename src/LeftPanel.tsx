@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Page, Folder, SyncStatus, Project } from './types'
 import { Lang, t as i18nT } from './i18n'
-import { Search, Edit2, FileText, Trash2, ChevronDown, RotateCcw, X, MoreHorizontal } from 'lucide-react'
+import { Search, Edit2, FileText, Trash2, ChevronDown, RotateCcw, X, MoreHorizontal, Upload, Plus } from 'lucide-react'
+import { importJsonBackupFile } from './fileHandlers'
 
 function timeSince(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
@@ -111,6 +112,35 @@ function LeftPanel(props: Record<string, unknown>) {
   const [showProjSearch, setShowProjSearch] = useState(false)
 
   const filteredProjects = projectsProp.filter(p => (p.title || 'Untitled Document').toLowerCase().includes(projSearchQuery.toLowerCase()))
+
+  const handleLeftPanelImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.txt,.md,.docx,.pdf,.html,.json'
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const file = target.files?.[0]
+      if (!file) return
+
+      if (file.name.toLowerCase().endsWith('.json')) {
+        try {
+          await importJsonBackupFile(file)
+          if (props.onReloadProjects) {
+            await (props.onReloadProjects as () => void | Promise<void>)()
+          }
+        } catch {
+          if (props.onImportFile) {
+            await (props.onImportFile as (file: File) => void | Promise<void>)(file)
+          }
+        }
+      } else {
+        if (props.onImportFile) {
+          await (props.onImportFile as (file: File) => void | Promise<void>)(file)
+        }
+      }
+    }
+    input.click()
+  }
 
   useEffect(() => {
     const id = setInterval(() => setTick(tk => tk + 1), 30000)
@@ -447,16 +477,24 @@ function LeftPanel(props: Record<string, unknown>) {
           }}>
             {t(lang, 'projects')}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <button
               type="button"
               onClick={onNewProject}
-              title={t(lang, 'newDocument')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-transparent border border-neutral-200/20 dark:border-neutral-800/40 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/10 transition-all text-[11px] font-medium cursor-pointer"
+              title={t(lang, 'newDoc')}
+              className="p-1.5 rounded-md bg-transparent border border-neutral-200/20 dark:border-neutral-800/40 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/10 transition-all cursor-pointer flex items-center justify-center"
               style={{ fontFamily: uiFont }}
             >
-              <span className="text-xs leading-none">+</span>
-              <span>{t(lang, 'newDoc')}</span>
+              <Plus size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={handleLeftPanelImport}
+              title="Import file (.txt, .md, .docx, .json)"
+              className="p-1.5 rounded-md bg-transparent border border-neutral-200/20 dark:border-neutral-800/40 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/10 transition-all cursor-pointer flex items-center justify-center"
+              style={{ fontFamily: uiFont }}
+            >
+              <Upload size={14} />
             </button>
             {Boolean(props.onCloseSidebar || props.onClose) && (
               <button
@@ -613,6 +651,20 @@ function LeftPanel(props: Record<string, unknown>) {
             </span>
           </button>
         ))}
+        {/* Import file */}
+        <button
+          onClick={handleLeftPanelImport}
+          title="Import file (.txt, .md, .docx, .json)"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: c.textFaint, padding: '4px 6px', transition: 'color 0.15s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
+          onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
+        >
+          <Upload size={13} />
+        </button>
         {/* New page */}
         <button
           onClick={() => onNewPage(activeTab === 'drafts')}
@@ -718,20 +770,17 @@ function LeftPanel(props: Record<string, unknown>) {
             onClick={onOpenGithubCloudSave}
             style={{
               width: '100%', padding: '7px 10px', borderRadius: 8, border: `1px solid ${c.border}`,
-              background: c.isDark ? 'rgba(99, 102, 241, 0.12)' : '#f5f3ff',
-              fontFamily: uiFont, fontSize: '0.74rem', color: c.isDark ? '#a5b4fc' : '#4f46e5', fontWeight: 600,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, transition: 'all 0.15s',
+              background: c.surface,
+              fontFamily: uiFont, fontSize: '0.74rem', color: c.text, fontWeight: 500,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = c.accent; e.currentTarget.style.background = c.panel }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.surface }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-              </svg>
-              <span>{t(lang, 'cloudSave')}</span>
-            </div>
-            <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>🔒</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>{t(lang, 'cloudSave')}</span>
           </button>
         </div>
       </div>

@@ -18,7 +18,7 @@ import WelcomeScreen from './WelcomeScreen';
 import GithubCloudSaveModal from './GithubCloudSaveModal';
 import type { Document, Folder, ThemeColors, ThemeMode, CustomTheme, CustomFont, Lang, Project, Page, FormatState, PageFormat } from './types';
 import { PAPER_SIZES_PX } from './types';
-import { getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAppSettings, saveAppSettings } from './db';
+import { getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAppSettings, saveAppSettings, db, getAllFoldersFromDB } from './db';
 
 // --- localStorage helpers ---
 const LS = {
@@ -748,20 +748,74 @@ export default function App() {
     });
   }, [activeProjectId, scheduleSaveProject]);
 
-  const emptyBin = useCallback(() => {
-    setProjects((prev) => {
-      return prev.map((proj) => {
-        if (proj.id !== activeProjectId) return proj;
+  const emptyAllTrash = useCallback(async () => {
+    try {
+      // 1. Permanent delete all projects marked as deleted (isDeleted: true) from DB
+      const allProjs = await getAllProjectsFromDB();
+      const trashedProjIds = allProjs.filter(p => p.isDeleted).map(p => p.id);
+      for (const id of trashedProjIds) {
+        await deleteProjectFromDB(id);
+      }
+
+      // 2. Permanent delete all folders marked as deleted (isDeleted: true) from DB
+      const allFlds = await getAllFoldersFromDB();
+      const trashedFldIds = allFlds.filter(f => f.isDeleted).map(f => f.id);
+      for (const id of trashedFldIds) {
+        await db.folders.delete(id);
+      }
+
+      // 3. Clear the page-level 'bin' array of ALL active projects (remaining non-deleted projects)
+      const remainingProjs = allProjs.filter(p => !p.isDeleted);
+      for (const proj of remainingProjs) {
         const updatedProj: Project = {
           ...proj,
           bin: [],
           lastModified: new Date().toISOString(),
         };
-        scheduleSaveProject(updatedProj);
-        return updatedProj;
-      });
-    });
-  }, [activeProjectId, scheduleSaveProject]);
+        await saveProjectToDB(updatedProj);
+      }
+
+      // 4. Update the projects list state in App
+      const finalProjs = await getAllProjectsFromDB();
+      setProjects(finalProjs);
+
+      // 5. If the current active project was deleted, handle switching project
+      if (activeProjectId && trashedProjIds.includes(activeProjectId)) {
+        const nonDeleted = finalProjs.filter(p => !p.isDeleted);
+        if (nonDeleted.length > 0) {
+          setActiveProjectId(nonDeleted[0].id);
+          setActivePageId(nonDeleted[0].pages?.[0]?.id || nonDeleted[0].drafts?.[0]?.id || '');
+          LS.set('kgv-active-project-id', nonDeleted[0].id);
+        } else {
+          // Create default
+          const defaultPage: Page = {
+            id: 'page-' + Date.now(),
+            title: 'Untitled Document',
+            content: '',
+            isDraft: false,
+            createdAt: new Date().toISOString(),
+            lastModified: new Date().toISOString(),
+          };
+          const freshProj: Project = {
+            id: 'proj-' + Date.now(),
+            title: 'Untitled Document',
+            pages: [defaultPage],
+            drafts: [],
+            folders: [],
+            bin: [],
+            createdAt: new Date().toISOString(),
+            lastModified: new Date().toISOString(),
+          };
+          await saveProjectToDB(freshProj);
+          setActiveProjectId(freshProj.id);
+          setActivePageId(defaultPage.id);
+          setProjects([freshProj]);
+        }
+      }
+    } catch (err) {
+      console.error('Error emptying all trash:', err);
+    }
+  }, [activeProjectId]);
 
   // Folder Operations inside active project
   const addFolder = useCallback((parentId: string | null = null) => {
@@ -1016,6 +1070,7 @@ export default function App() {
           theme={theme}
           uiFont={uiFont}
           lang={lang}
+          onEmptyAllTrash={emptyAllTrash}
           onOpenGithubCloudSave={() => setGithubModalOpen(true)}
           onOpenProject={(projectId) => {
             setActiveProjectId(projectId);
@@ -1115,9 +1170,14 @@ export default function App() {
           onMovePageToFolder={movePageToFolder}
           onRestorePage={restorePage}
           onPermanentDelete={permanentDeletePage}
-          onEmptyBin={emptyBin}
+          onEmptyBin={emptyAllTrash}
           onCloseSidebar={() => setSidebarOpen(false)}
           onOpenGithubCloudSave={() => setGithubModalOpen(true)}
+          onImportFile={handleImportFile}
+          onReloadProjects={async () => {
+            const projs = await getAllProjectsFromDB();
+            setProjects(projs);
+          }}
         />
       </div>
 
