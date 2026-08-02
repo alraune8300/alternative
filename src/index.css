@@ -27,7 +27,6 @@ body {
   line-height: 1.8;
   letter-spacing: 0.01em;
   word-spacing: 0.05em;
-  min-height: 60vh;
 }
 
 .kgv-editor:focus,
@@ -317,8 +316,6 @@ body {
 
 @media (min-width: 1024px) {
   .kgv-adaptive-paper {
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
   }
@@ -326,8 +323,8 @@ body {
 
 /* === Unlimited Input & Performance Optimization === */
 .ProseMirror p, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror li {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 35px;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
 }
 
 .ProseMirror hr {
@@ -360,3 +357,76 @@ html, body {
     font-size: 19px !important;
   }
 }
+
+/* === Bulletproof rendering for lists (bullets and numbering) === */
+.kgv-editor ul,
+.ProseMirror ul,
+ul.kgv-editor {
+  list-style: disc outside !important;
+  padding-left: 32px !important;
+  margin-left: 0 !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.kgv-editor ol,
+.ProseMirror ol,
+ol.kgv-editor {
+  list-style: decimal outside !important;
+  padding-left: 32px !important;
+  margin-left: 0 !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.kgv-editor li,
+.ProseMirror li {
+  display: list-item !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.kgv-editor ul li::marker,
+.ProseMirror ul li::marker,
+.kgv-editor ol li::marker,
+.ProseMirror ol li::marker {
+  color: currentColor !important;
+}
+
+.ProseMirror p, .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+
+.kgv-editor li p,
+.ProseMirror li p {
+  display: inline !important;
+  margin: 0 !important;
+}
+
+/* === Multi-level nested lists nested styling === */
+.kgv-editor ul ul, .ProseMirror ul ul, ul.kgv-editor ul {
+  list-style-type: circle !important;
+  padding-left: 24px !important;
+}
+.kgv-editor ol ol, .ProseMirror ol ol, ol.kgv-editor ol {
+  list-style-type: lower-alpha !important;
+  padding-left: 24px !important;
+}
+.kgv-editor ul ol, .ProseMirror ul ol, .kgv-editor ol ul, .ProseMirror ol ul {
+  list-style-type: lower-roman !important;
+  padding-left: 24px !important;
+}
+
+/* === Print margin override to eliminate screen gaps in print === */
+@media print {
+  .ProseMirror > * {
+    margin-top: var(--print-margin-top) !important;
+  }
+}
+
+.paper-page {
+  padding-bottom: 72pt !important;
+}
+

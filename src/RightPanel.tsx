@@ -287,6 +287,10 @@ function RightPanel(props: Record<string, unknown>) {
   }
 
   const handlePrintPDF = () => {
+    if (props.onPrint) {
+      (props.onPrint as () => void)();
+      return;
+    }
     const existing = document.getElementById('prose-print-style')
     if (existing) existing.remove()
     const style = document.createElement('style')

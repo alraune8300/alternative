@@ -4,8 +4,18 @@ import mammoth from 'mammoth';
 import TurndownService from 'turndown';
 import { PageFormat, PAPER_SIZES_PX, Project, Folder } from './types';
 import { saveProjectToDB, saveFolderToDB } from './db';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, PageNumber, Footer, HeadingLevel, PageOrientation } from 'docx';
 
 const turndownService = new TurndownService();
+
+const PAPER_SIZES_PT: Record<string, { w: number; h: number }> = {
+  'A4':      { w: 595,  h: 842 },
+  'Letter':  { w: 612,  h: 792 },
+  'Legal':   { w: 612,  h: 1008 },
+  'A5':      { w: 420,  h: 595  },
+  'Tabloid': { w: 792,  h: 1224 },
+  'pageless': { w: 495, h: 0 },
+};
 
 export async function exportToPdf(title: string, contentHtml: string, pageFormat: PageFormat) {
   const container = document.createElement('div');
@@ -133,19 +143,168 @@ export async function exportToPdf(title: string, contentHtml: string, pageFormat
   }
 }
 
-export function exportToDocx(title: string, contentHtml: string) {
-  const wordDocument = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-<head><meta charset="utf-8"><title>${title}</title>
-<style>
-  @page { size: 21cm 29.7cm; margin: 2.54cm; }
-  body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 12pt; line-height: 1.5; color: #333; text-align: justify; }
-  h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; color: #111; text-align: left; }
-  h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; color: #222; text-align: left; }
-  p { margin: 0 0 12pt 0; text-align: justify; }
-</style>
-</head><body><h1>${title}</h1>${contentHtml}</body></html>`;
-  const blob = new Blob(['\ufeff' + wordDocument], { type: 'application/msword' });
-  triggerDownload(blob, `${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.doc`);
+export async function exportToDocx(title: string, contentHtml: string, pageFormat: PageFormat) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(contentHtml, 'text/html');
+  const children = Array.from(doc.body.children);
+  
+  const docxElements: Paragraph[] = [];
+  
+  // Title Heading 1
+  docxElements.push(new Paragraph({
+    text: title,
+    heading: HeadingLevel.HEADING_1,
+    spacing: { after: 240 }, // 12pt
+  }));
+  
+  for (const el of children) {
+    const tagName = el.tagName.toLowerCase();
+    const textContent = el.textContent || '';
+    
+    if (tagName === 'h1') {
+      docxElements.push(new Paragraph({
+        text: textContent,
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 240, after: 120 },
+      }));
+    } else if (tagName === 'h2') {
+      docxElements.push(new Paragraph({
+        text: textContent,
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 240, after: 120 },
+      }));
+    } else if (tagName === 'h3') {
+      docxElements.push(new Paragraph({
+        text: textContent,
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 180, after: 120 },
+      }));
+    } else if (tagName === 'p') {
+      const runs: TextRun[] = [];
+      
+      const processNode = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          runs.push(new TextRun({
+            text: node.textContent || '',
+          }));
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const childEl = node as HTMLElement;
+          const childTag = childEl.tagName.toLowerCase();
+          
+          const isBold = childTag === 'strong' || childTag === 'b';
+          const isItalic = childTag === 'em' || childTag === 'i';
+          const isUnderline = childTag === 'u';
+          
+          const subRuns: TextRun[] = [];
+          const collectSubRuns = (subNode: Node) => {
+            if (subNode.nodeType === Node.TEXT_NODE) {
+              subRuns.push(new TextRun({
+                text: subNode.textContent || '',
+                bold: isBold,
+                italic: isItalic,
+                underline: isUnderline ? {} : undefined,
+              }));
+            } else if (subNode.nodeType === Node.ELEMENT_NODE) {
+              const subEl = subNode as HTMLElement;
+              const subTag = subEl.tagName.toLowerCase();
+              const subBold = isBold || subTag === 'strong' || subTag === 'b';
+              const subItalic = isItalic || subTag === 'em' || subTag === 'i';
+              const subUnderline = isUnderline || subTag === 'u';
+              
+              Array.from(subEl.childNodes).forEach(n => {
+                if (n.nodeType === Node.TEXT_NODE) {
+                  subRuns.push(new TextRun({
+                    text: n.textContent || '',
+                    bold: subBold,
+                    italic: subItalic,
+                    underline: subUnderline ? {} : undefined,
+                  }));
+                } else {
+                  collectSubRuns(n);
+                }
+              });
+            }
+          };
+          
+          Array.from(childEl.childNodes).forEach(collectSubRuns);
+          runs.push(...subRuns);
+        }
+      };
+      
+      Array.from(el.childNodes).forEach(processNode);
+      
+      docxElements.push(new Paragraph({
+        children: runs,
+        spacing: { after: 120 },
+      }));
+    } else if (tagName === 'ul' || tagName === 'ol') {
+      const isOrdered = tagName === 'ol';
+      const listItems = Array.from(el.querySelectorAll('li'));
+      
+      listItems.forEach(li => {
+        docxElements.push(new Paragraph({
+          text: li.textContent || '',
+          bullet: isOrdered ? undefined : { level: 0 },
+          numbering: isOrdered ? { reference: 'ordered-list', level: 0 } : undefined,
+          spacing: { after: 60 },
+        }));
+      });
+    }
+  }
+  
+  // Calculate dxa sizes from matrix (points * 20)
+  const sizePt = PAPER_SIZES_PT[pageFormat.paperSize] || PAPER_SIZES_PT['A4'];
+  const wPt = pageFormat.orientation === 'landscape' ? sizePt.h : sizePt.w;
+  const hPt = pageFormat.orientation === 'landscape' ? sizePt.w : sizePt.h;
+  
+  const wDxa = wPt * 20;
+  const hDxa = hPt * 20;
+  const marginDxa = 72 * 20; // 1440
+  const headerDxa = 36 * 20; // 720
+  const footerDxa = 36 * 20; // 720
+  
+  const wordDoc = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            size: {
+              width: wDxa,
+              height: hDxa,
+            },
+            margin: {
+              top: marginDxa,
+              bottom: marginDxa,
+              left: marginDxa,
+              right: marginDxa,
+              header: headerDxa,
+              footer: footerDxa,
+            },
+            orientation: pageFormat.orientation === 'landscape' ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+          },
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({ text: "Trang ", size: 20 }), // half-points: 20 is 10pt
+                  PageNumber.CURRENT,
+                  new TextRun({ text: " / ", size: 20 }),
+                  PageNumber.TOTAL_PAGES,
+                ],
+              }),
+            ],
+          }),
+        },
+        children: docxElements,
+      },
+    ],
+  });
+  
+  const buffer = await Packer.toBlob(wordDoc);
+  triggerDownload(buffer, `${(title || 'document').replace(/[\\/:*?"<>|]/g, '')}.docx`);
 }
 
 export function exportToHtmlFile(title: string, contentHtml: string) {

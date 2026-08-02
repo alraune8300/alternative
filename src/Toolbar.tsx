@@ -116,7 +116,7 @@ function Toolbar({
 
   return (
     <div
-      className="sticky top-0 z-10 flex items-center flex-wrap gap-1 px-3 py-2 select-none"
+      className="sticky top-0 z-10 flex items-center flex-nowrap lg:flex-wrap overflow-x-auto lg:overflow-x-visible scrollbar-none gap-1 px-3 py-2 select-none"
       style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, fontFamily: `'${uiFont}', sans-serif` }}
     >
       {onToggleSidebar && (
@@ -240,8 +240,18 @@ function Toolbar({
 
       <ToolBtn onClick={() => editor.chain().focus().toggleBulletList().run()} icon={<List size={15} />} label={t.bulletList} active={editor.isActive('bulletList')} />
       <ToolBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} icon={<ListOrdered size={15} />} label={t.numberList} active={editor.isActive('orderedList')} />
-      <ToolBtn onClick={() => (editor.commands as unknown as { indent: () => void }).indent()} icon={<Indent size={15} />} label={t.indent} />
-      <ToolBtn onClick={() => (editor.commands as unknown as { outdent: () => void }).outdent()} icon={<Outdent size={15} />} label={t.outdent} />
+      <ToolBtn onClick={() => {
+        const cmds = editor.commands as Record<string, (...args: unknown[]) => boolean>;
+        if (!cmds.sinkListItem('listItem')) {
+          cmds.indent?.();
+        }
+      }} icon={<Indent size={15} />} label={t.indent} />
+      <ToolBtn onClick={() => {
+        const cmds = editor.commands as Record<string, (...args: unknown[]) => boolean>;
+        if (!cmds.liftListItem('listItem')) {
+          cmds.outdent?.();
+        }
+      }} icon={<Outdent size={15} />} label={t.outdent} />
 
       <Divider />
 

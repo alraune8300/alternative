@@ -83,7 +83,30 @@ function Editor({
         callbacksRef.current.onContentChange(html);
       }, 400);
     },
+    onTransaction: ({ transaction }) => {
+      // Keep scroll coordinates locked when selections change from external formatting commands
+      if (transaction.selectionSet) {
+        const scrollContainers = document.querySelectorAll('.overflow-y-auto');
+        scrollContainers.forEach((scrollContainer) => {
+          const prevScroll = scrollContainer.scrollTop;
+          requestAnimationFrame(() => {
+            // Restore scroll position to prevent dramatic jumps on selection / Select All
+            if (scrollContainer && Math.abs(scrollContainer.scrollTop - prevScroll) > 15) {
+              scrollContainer.scrollTop = prevScroll;
+            }
+          });
+        });
+      }
+    },
     editorProps: {
+      handleScrollToSelection: (view) => {
+        // Prevent ProseMirror auto-scrolling when formatting or making selections via Select All
+        // if the active element is not the editor's text area (e.g., toolbar button clicks)
+        if (document.activeElement && !view.dom.contains(document.activeElement)) {
+          return true; // block default scrolling behavior
+        }
+        return false;
+      },
       attributes: {
         class: 'kgv-editor kgv-caret text-left direction-ltr pointer-events-auto user-select-text',
         style: `color: ${theme.text}; caret-color: ${theme.text}; line-height: 1.7;`,
@@ -96,12 +119,16 @@ function Editor({
       handleKeyDown: (_view, event) => {
         if (event.key === 'Tab') {
           event.preventDefault();
-          if (editor && !editor.isDestroyed && typeof editor.commands === 'object') {
-            const cmds = editor.commands as unknown as { indent?: () => boolean; outdent?: () => boolean };
+          if (editor && !editor.isDestroyed) {
+            const cmds = editor.commands as Record<string, (...args: unknown[]) => boolean>;
             if (event.shiftKey) {
-              cmds.outdent?.();
+              if (!cmds.liftListItem('listItem')) {
+                cmds.outdent?.();
+              }
             } else {
-              cmds.indent?.();
+              if (!cmds.sinkListItem('listItem')) {
+                cmds.indent?.();
+              }
             }
           }
           return true;
@@ -128,11 +155,15 @@ function Editor({
 
   useEffect(() => {
     if (!editor) return;
+    const activeFontSize = formatState?.fontSize || fontSize || 16;
+    const activeLineHeightVal = (isPreviewMode || isFocusMode) ? 1.8 : (formatState?.lineH || 1.7);
+    const absLineHeight = Math.round(activeFontSize * activeLineHeightVal);
+
     editor.setOptions({
       editorProps: {
         attributes: {
           class: 'kgv-editor kgv-caret text-left direction-ltr pointer-events-auto user-select-text',
-          style: `color: ${theme.text}; caret-color: ${theme.text}; line-height: ${(isPreviewMode || isFocusMode) ? '1.8' : '1.7'}; min-height: 100%;`,
+          style: `color: ${theme.text}; caret-color: ${theme.text}; font-size: ${activeFontSize}px; line-height: ${absLineHeight}px; min-height: 100%;`,
           'data-placeholder': t.startWriting,
           dir: 'ltr',
           autocorrect: 'off',
@@ -141,7 +172,7 @@ function Editor({
         },
       },
     });
-  }, [editor, theme.text, t.startWriting, isPreviewMode, isFocusMode]);
+  }, [editor, theme.text, t.startWriting, isPreviewMode, isFocusMode, formatState, fontSize]);
 
   useEffect(() => {
     function handleDocFont(e: Event) {
@@ -170,6 +201,28 @@ function Editor({
   
   if (!editor) return null;
 
+  const isPaginated = !isPreviewMode && !isFocusMode;
+
+  if (isPaginated) {
+    const activeFontSize = formatState?.fontSize || fontSize || 16;
+    const activeLineHeightVal = formatState?.lineH || 1.7;
+    const absLineHeight = Math.round(activeFontSize * activeLineHeightVal);
+
+    return (
+      <div 
+        className="w-full h-full relative pointer-events-auto" 
+        style={{ 
+          color: theme.text,
+          fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
+          fontSize: `${activeFontSize}px`,
+          lineHeight: `${absLineHeight}px`,
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Central Editor Container */}
@@ -195,7 +248,7 @@ function Editor({
           style={{
             fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
             fontSize: `${formatState?.fontSize || fontSize}px`,
-            lineHeight: (isPreviewMode || isFocusMode) ? 1.8 : (formatState?.lineH || 1.7),
+            lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * ((isPreviewMode || isFocusMode) ? 1.8 : (formatState?.lineH || 1.7)))}px`,
           }}
         >
           <EditorContent editor={editor} />

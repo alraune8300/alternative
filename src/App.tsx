@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   THEMES, deriveCustomTheme, WELCOME_ID,
   BUILTIN_FONTS,
@@ -97,6 +97,21 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState('');
   const [activePageId, setActivePageId] = useState('');
   const [isWorkspaceActive, setIsWorkspaceActive] = useState(false);
+
+  const activeProject = useMemo(() => {
+    return projects.find((p) => p.id === activeProjectId) || projects[0];
+  }, [projects, activeProjectId]);
+
+  const allPagesInActiveProj = useMemo(() => {
+    if (!activeProject) return [];
+    return [...(activeProject.pages || []), ...(activeProject.drafts || [])];
+  }, [activeProject]);
+
+  const activePage = useMemo(() => {
+    if (!activeProject) return undefined;
+    const found = allPagesInActiveProj.find((p) => p.id === activePageId);
+    return found || activeProject.pages?.[0] || activeProject.drafts?.[0];
+  }, [activeProject, allPagesInActiveProj, activePageId]);
 
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
   const [customTheme, setCustomTheme] = useState<CustomTheme | null>(null);
@@ -206,6 +221,87 @@ export default function App() {
     mode: 'pages',
   });
 
+  const [docPages, setDocPages] = useState<{ id: string; content: string }[]>([]);
+  const [activePageIndex, setActivePageIndex] = useState(0);
+
+  const recalculatePagination = useCallback(() => {
+    // No-op under the new Multi-page DOM Wrapper architecture
+  }, []);
+
+  const [mobileRibbonStyle, setMobileRibbonStyle] = useState<React.CSSProperties>({});
+
+  // 1. KEYBOARD RESIZE LOCK: Only recalculate pagination on width changes
+  useEffect(() => {
+    let lastWidth = window.innerWidth;
+
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      if (currentWidth !== lastWidth) {
+        lastWidth = currentWidth;
+        recalculatePagination();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    const viewport = window.visualViewport;
+    const handleViewportResize = () => {
+      if (viewport) {
+        const currentWidth = viewport.width;
+        // Small tolerance of 5px to avoid subpixel noise on zoom
+        if (Math.abs(currentWidth - lastWidth) > 5) {
+          lastWidth = currentWidth;
+          recalculatePagination();
+        }
+      }
+    };
+
+    if (viewport) {
+      viewport.addEventListener('resize', handleViewportResize);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (viewport) {
+        viewport.removeEventListener('resize', handleViewportResize);
+      }
+    };
+  }, [recalculatePagination]);
+
+  // 2. STICKY TOOLBAR ENGINE: Position Format Ribbon dynamically on mobile Viewport
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateToolbarPosition = () => {
+      if (window.innerWidth < 1024) {
+        setMobileRibbonStyle({
+          position: 'fixed',
+          top: `${viewport.offsetTop}px`,
+          left: `${viewport.offsetLeft}px`,
+          width: `${viewport.width}px`,
+          zIndex: 40,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          transition: 'none',
+        });
+      } else {
+        setMobileRibbonStyle({});
+      }
+    };
+
+    viewport.addEventListener('resize', updateToolbarPosition);
+    viewport.addEventListener('scroll', updateToolbarPosition);
+    window.addEventListener('resize', updateToolbarPosition);
+
+    updateToolbarPosition();
+
+    return () => {
+      viewport.removeEventListener('resize', updateToolbarPosition);
+      viewport.removeEventListener('scroll', updateToolbarPosition);
+      window.removeEventListener('resize', updateToolbarPosition);
+    };
+  }, [showRibbon]);
+
   const [editorInstance, setEditorInstance] = useState<TiptapEditorType | null>(null);
 
   const handleFormatChange = useCallback((updates: Partial<FormatState>) => {
@@ -287,20 +383,7 @@ export default function App() {
     return THEMES[key] || THEMES.light;
   }, [themeMode, customTheme]);
 
-  const activeProject = useMemo(() => {
-    return projects.find((p) => p.id === activeProjectId) || projects[0];
-  }, [projects, activeProjectId]);
 
-  const allPagesInActiveProj = useMemo(() => {
-    if (!activeProject) return [];
-    return [...(activeProject.pages || []), ...(activeProject.drafts || [])];
-  }, [activeProject]);
-
-  const activePage = useMemo(() => {
-    if (!activeProject) return undefined;
-    const found = allPagesInActiveProj.find((p) => p.id === activePageId);
-    return found || activeProject.pages?.[0] || activeProject.drafts?.[0];
-  }, [activeProject, allPagesInActiveProj, activePageId]);
 
 
   const availableFonts = useMemo(() => {
@@ -550,6 +633,260 @@ export default function App() {
   const handleContentChange = useCallback((html: string) => {
     updateActivePage({ content: html });
   }, [updateActivePage]);
+
+  // --- MULTI-PAGE PAGINATION SYSTEM ---
+  const splitContentIntoPages = useCallback((
+    htmlContent: string,
+    paperWidth: number,
+    printableHeight: number,
+    marginPx: number,
+    fontFam: string,
+    fontSizeVal: number,
+    lineHVal: number
+  ): { id: string; content: string }[] => {
+    if (!htmlContent || htmlContent.trim() === '' || htmlContent === '<p></p>') {
+      return [{ id: 'page-1', content: '<p></p>' }];
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+    const sourceNodes = Array.from(doc.body.children) as HTMLElement[];
+
+    const pagesData: string[] = [];
+
+    // Create a hidden workspace container for measuring
+    const workspace = document.createElement('div');
+    workspace.className = 'ProseMirror kgv-editor';
+    workspace.style.position = 'absolute';
+    workspace.style.visibility = 'hidden';
+    workspace.style.pointerEvents = 'none';
+    workspace.style.left = '-9999px';
+    workspace.style.top = '0';
+    workspace.style.width = `${paperWidth - marginPx * 2}px`;
+    workspace.style.fontFamily = `'${fontFam}', Georgia, serif`;
+    workspace.style.fontSize = `${fontSizeVal}px`;
+    const absLineHeight = Math.round(fontSizeVal * lineHVal);
+    workspace.style.lineHeight = `${absLineHeight}px`;
+    workspace.style.padding = '0';
+    workspace.style.margin = '0';
+    document.body.appendChild(workspace);
+
+    const commitPage = () => {
+      if (workspace.innerHTML) {
+        pagesData.push(workspace.innerHTML);
+      }
+      workspace.innerHTML = '';
+    };
+
+    workspace.innerHTML = ''; // Start clean
+
+    for (let i = 0; i < sourceNodes.length; i++) {
+      const node = sourceNodes[i].cloneNode(true) as HTMLElement;
+      workspace.appendChild(node);
+
+      const rect = node.getBoundingClientRect();
+      const workspaceRect = workspace.getBoundingClientRect();
+      const nodeBottom = rect.bottom - workspaceRect.top;
+      const nodeHeight = rect.bottom - rect.top;
+
+      if (nodeBottom > printableHeight) {
+        const tagName = node.tagName.toUpperCase();
+
+        if (tagName === 'UL' || tagName === 'OL') {
+          workspace.removeChild(node);
+          
+          let currentList = document.createElement(tagName);
+          Array.from(node.attributes).forEach(attr => currentList.setAttribute(attr.name, attr.value));
+          workspace.appendChild(currentList);
+          
+          const listItems = Array.from(node.children) as HTMLElement[];
+          for (let j = 0; j < listItems.length; j++) {
+            const li = listItems[j];
+            currentList.appendChild(li);
+
+            const liRect = li.getBoundingClientRect();
+            const wsRect = workspace.getBoundingClientRect();
+            const liBottom = liRect.bottom - wsRect.top;
+            const liHeight = liRect.bottom - liRect.top;
+
+            if (liBottom > printableHeight) {
+              currentList.removeChild(li);
+
+              if (currentList.children.length === 0 && workspace.children.length > 1 && liHeight <= printableHeight) {
+                // List is empty, page has other content, and LI fits on new page.
+                workspace.removeChild(currentList);
+                commitPage();
+
+                currentList = document.createElement(tagName);
+                Array.from(node.attributes).forEach(attr => currentList.setAttribute(attr.name, attr.value));
+                if (tagName === 'OL') {
+                  const prevStart = parseInt(node.getAttribute('start') || '1', 10);
+                  currentList.setAttribute('start', (prevStart + j).toString());
+                }
+                workspace.appendChild(currentList);
+                currentList.appendChild(li);
+              } else if (currentList.children.length > 0) {
+                // List has items, commit page.
+                commitPage();
+
+                currentList = document.createElement(tagName);
+                Array.from(node.attributes).forEach(attr => currentList.setAttribute(attr.name, attr.value));
+                if (tagName === 'OL') {
+                  const prevStart = parseInt(node.getAttribute('start') || '1', 10);
+                  currentList.setAttribute('start', (prevStart + j).toString());
+                }
+                workspace.appendChild(currentList);
+                currentList.appendChild(li);
+              } else {
+                // Keep it on the current page to avoid infinite loop.
+                currentList.appendChild(li);
+              }
+            }
+          }
+        } else {
+          // Not a list
+          if (workspace.children.length > 1 && nodeHeight <= printableHeight) {
+            // It fits on a blank page, push it to the next page
+            workspace.removeChild(node);
+            commitPage();
+            workspace.appendChild(node);
+          } else {
+            // Keep it on current page to avoid empty pages
+          }
+        }
+      }
+    }
+
+    commitPage();
+    document.body.removeChild(workspace);
+
+    if (pagesData.length === 0) {
+      return [{ id: 'page-1', content: '<p></p>' }];
+    }
+
+    return pagesData.map((content, idx) => ({
+      id: `page-${idx + 1}`,
+      content,
+    }));
+  }, []);
+
+  // Load pages initially or when active document changes
+  useEffect(() => {
+    if (!activePage) {
+      setDocPages([{ id: 'page-1', content: '<p></p>' }]);
+      setActivePageIndex(0);
+      return;
+    }
+
+    const fullHTML = activePage.content || '';
+    
+    const paperWidth = pageFormat.orientation === 'landscape'
+      ? (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123)
+      : (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794);
+    const paperHeight = pageFormat.orientation === 'landscape'
+      ? (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794)
+      : (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123);
+
+    const marginPx = 72 * 4 / 3; // 96px
+    const footerHeight = 48; // 36pt
+    const printableHeight = paperHeight - marginPx * 2 - footerHeight;
+    const fontFam = formatState.fontFam || docFont;
+    const fontSizeVal = formatState.fontSize || fontSize || 16;
+    const lineHVal = formatState.lineH || 1.7;
+
+    const initialPages = splitContentIntoPages(
+      fullHTML,
+      paperWidth,
+      printableHeight,
+      marginPx,
+      fontFam,
+      fontSizeVal,
+      lineHVal
+    );
+
+    setDocPages(initialPages);
+    setActivePageIndex(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activePage?.id,
+    pageFormat.paperSize,
+    pageFormat.orientation,
+    formatState.fontFam,
+    formatState.fontSize,
+    formatState.lineH,
+    docFont,
+    fontSize,
+    splitContentIntoPages
+  ]);
+
+  const handlePageContentChange = useCallback((pageIndex: number, newPageHTML: string) => {
+    setDocPages((prevPages) => {
+      const updatedPages = [...prevPages];
+      updatedPages[pageIndex] = {
+        ...updatedPages[pageIndex],
+        content: newPageHTML
+      };
+
+      const fullHTML = updatedPages.map(p => p.content).join('');
+
+      const paperWidth = pageFormat.orientation === 'landscape'
+        ? (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123)
+        : (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794);
+      const paperHeight = pageFormat.orientation === 'landscape'
+        ? (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794)
+        : (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123);
+
+    const marginPx = 72 * 4 / 3; // 96px
+      const footerHeight = 48; // 36pt
+      const printableHeight = paperHeight - marginPx * 2 - footerHeight;
+      const fontFam = formatState.fontFam || docFont;
+      const fontSizeVal = formatState.fontSize || fontSize || 16;
+      const lineHVal = formatState.lineH || 1.7;
+
+      const newSplitPages = splitContentIntoPages(
+        fullHTML,
+        paperWidth,
+        printableHeight,
+        marginPx,
+        fontFam,
+        fontSizeVal,
+        lineHVal
+      );
+
+      // Save combined flat content back to database/IndexedDB
+      updateActivePage({ content: fullHTML });
+
+      let newActiveIndex = pageIndex;
+      if (newActiveIndex >= newSplitPages.length) {
+        newActiveIndex = newSplitPages.length - 1;
+      }
+
+      if (newSplitPages.length > prevPages.length && pageIndex === prevPages.length - 1) {
+        newActiveIndex = newSplitPages.length - 1;
+      } else if (newSplitPages[pageIndex] && newSplitPages[pageIndex].content.length < newPageHTML.length) {
+        if (pageIndex + 1 < newSplitPages.length) {
+          newActiveIndex = pageIndex + 1;
+        }
+      }
+
+      if (newActiveIndex !== activePageIndex) {
+        setTimeout(() => setActivePageIndex(newActiveIndex), 0);
+      }
+
+      return newSplitPages;
+    });
+  }, [
+    pageFormat.paperSize,
+    pageFormat.orientation,
+    formatState.fontFam,
+    formatState.fontSize,
+    formatState.lineH,
+    docFont,
+    fontSize,
+    splitContentIntoPages,
+    updateActivePage,
+    activePageIndex
+  ]);
 
   // Project Switcher handler
   const handleSelectProject = useCallback((projectId: string) => {
@@ -1041,9 +1378,115 @@ export default function App() {
     exportToPdf(activePage?.title || 'Document', activePage?.content || '', pageFormat);
   }, [activePage, pageFormat]);
 
+  const handlePrint = useCallback(() => {
+    const existing = document.getElementById('kgv-print-style');
+    if (existing) existing.remove();
+
+    const paperSize = pageFormat.paperSize;
+    const orientation = pageFormat.orientation || 'portrait';
+
+    let pageSizeCss = 'A4 portrait';
+    if (paperSize === 'Letter') pageSizeCss = `8.5in 11in ${orientation}`;
+    else if (paperSize === 'Legal') pageSizeCss = `8.5in 14in ${orientation}`;
+    else if (paperSize === 'A5') pageSizeCss = `148mm 210mm ${orientation}`;
+    else if (paperSize === 'Tabloid') pageSizeCss = `11in 17in ${orientation}`;
+    else if (paperSize === 'A4') pageSizeCss = `210mm 297mm ${orientation}`;
+    else if (paperSize === 'pageless') pageSizeCss = `8.5in 11in ${orientation}`;
+
+    const style = document.createElement('style');
+    style.id = 'kgv-print-style';
+    style.textContent = `
+      @media print {
+        @page {
+          size: ${pageSizeCss};
+          margin: 0 !important;
+        }
+        
+        body {
+          background: #ffffff !important;
+          color: #000000 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        header, nav, aside, footer,
+        .no-print,
+        button,
+        input,
+        select,
+        textarea,
+        [class*="sidebar"],
+        [class*="RightPanel"],
+        [class*="Toolbar"],
+        [class*="ribbon"],
+        .left-sidebar-container,
+        .right-sidebar-container,
+        .top-nav-container,
+        .floating-buttons-container,
+        .zoom-controls,
+        .format-ribbon,
+        .fixed, .absolute.top-4.right-4, .absolute.bottom-4 {
+          display: none !important;
+        }
+
+        #root, 
+        .app-container, 
+        main,
+        div[style*="zoom"] {
+          display: block !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          zoom: 1 !important;
+          transform: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .kgv-adaptive-paper {
+          position: relative !important;
+          display: block !important;
+          margin: 0 auto !important;
+          padding-left: 96px !important;
+          padding-right: 96px !important;
+          padding-top: 144px !important;
+          padding-bottom: 144px !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+          page-break-after: avoid !important;
+          page-break-before: avoid !important;
+          page-break-inside: auto !important;
+        }
+
+        .kgv-adaptive-paper .no-print {
+          display: none !important;
+        }
+
+        .print-header-footer {
+          display: flex !important;
+          position: absolute !important;
+          color: #555555 !important;
+          opacity: 1 !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  }, [pageFormat]);
+
   const handleExportDocx = useCallback(() => {
-    exportToDocx(activePage?.title || 'Document', activePage?.content || '');
-  }, [activePage]);
+    exportToDocx(activePage?.title || 'Document', activePage?.content || '', pageFormat);
+  }, [activePage, pageFormat]);
 
   const handleExportHtml = useCallback(() => {
     exportToHtmlFile(activePage?.title || 'Document', activePage?.content || '');
@@ -1220,7 +1663,13 @@ export default function App() {
         )}
 
         {!isFocusMode && !isPreviewMode && editorInstance && showRibbon && (
-          <div className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 bg-transparent my-2 flex items-center justify-between px-4">
+          <div 
+            className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between px-4 transition-all duration-200"
+            style={{
+              backgroundColor: theme.surface,
+              ...mobileRibbonStyle
+            }}
+          >
             <div className="flex-1">
               <Toolbar
                 editor={editorInstance as TiptapEditorType}
@@ -1348,13 +1797,15 @@ export default function App() {
         )}
 
         {/* Floating Paper Sheet Container & Dynamic Page Format Wrapper with momentum scroll & GPU locking */}
-        <div className="flex-1 overflow-y-auto kgv-scroll kgv-momentum-scroll kgv-hardware-accelerated transition-all duration-300 ease-in-out flex flex-col items-center pt-16 sm:pt-20 pb-36 md:pt-24 md:pb-40 px-3 sm:px-6">
+        <div className={`flex-1 overflow-y-auto kgv-scroll kgv-momentum-scroll kgv-hardware-accelerated transition-all duration-300 ease-in-out flex flex-col items-center pb-36 px-3 sm:px-6 ${
+          (isFocusMode || isPreviewMode) 
+            ? 'pt-12 sm:pt-16 md:pt-20' 
+            : (showRibbon ? 'pt-20 lg:pt-5' : 'pt-3 sm:pt-4 md:pt-5')
+        }`}>
           <div className="w-full flex flex-col items-center transition-all duration-200" style={{ zoom: zoomPercent / 100 }}>
           {(() => {
             const isPreviewOrFocus = isPreviewMode || isFocusMode;
             const isPageless = pageFormat.paperSize === 'pageless';
-            const textLength = (activePage?.content || '').replace(/<[^>]*>/g, '').length;
-            const pageCount = (isPageless || isPreviewOrFocus) ? 1 : Math.max(1, Math.ceil(textLength / 2200));
 
             const paperWidth = pageFormat.orientation === 'landscape'
               ? (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123)
@@ -1433,45 +1884,179 @@ export default function App() {
             }
 
             const autoFitScale = containerWidth < paperWidth ? (containerWidth / paperWidth) : 1;
+            const marginPx = 72 * 4 / 3; // 96px
+            const pageGap = 24; // 24px gap between pages
 
             return (
-              <div className="flex flex-col items-center gap-4 w-full relative pt-8 pb-24 md:pt-16 md:pb-32 px-4 sm:px-6 transition-all duration-200" style={{ maxWidth: `${paperWidth}px`, zoom: autoFitScale }}>
-                {Array.from({ length: pageCount }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="relative rounded-2xl p-6 sm:p-10 md:p-16 kgv-adaptive-paper flex flex-col justify-between shadow-md"
-                    style={{
-                      width: `${paperWidth}px`,
-                      minHeight: `${paperHeight}px`,
-                      backgroundColor: theme.surface || '#ffffff',
-                      color: theme.text,
-                    }}
-                  >
-                    <div className="flex-1">
-                      {idx === 0 && (
-                        <Editor
-                          key={activePage?.id || 'empty'}
-                          theme={theme}
-                          docFont={docFont}
-                          fontSize={fontSize}
-                          formatState={formatState}
-                          onEditorReady={setEditorInstance}
-                          t={t}
-                          content={activePage?.content || ''}
-                          onContentChange={handleContentChange}
-                          isFocusMode={isFocusMode}
-                          onToggleFocusMode={handleToggleFocusMode}
-                          isPreviewMode={isPreviewMode}
-                          onTogglePreviewMode={handleTogglePreviewMode}
+              <div 
+                className="document-workspace flex flex-col items-center transition-all duration-300 relative"
+                style={{ 
+                  width: `${paperWidth}px`, 
+                  zoom: autoFitScale 
+                }}
+              >
+                {/* On-screen physical independent page containers */}
+                <div className="flex flex-col items-center w-full no-print">
+                  {docPages.map((page, index) => {
+                    const pageNumber = index + 1;
+                    const isActive = index === activePageIndex;
+
+                    return (
+                      <div
+                        key={page.id}
+                        className="paper-page relative rounded-lg shadow-md transition-all duration-200 border"
+                        onScroll={(e) => {
+                          if (e.currentTarget.scrollTop !== 0) {
+                            e.currentTarget.scrollTop = 0;
+                          }
+                        }}
+                        style={{
+                          width: `${paperWidth}px`,
+                          height: `${paperHeight}px`,
+                          marginBottom: `${pageGap}px`,
+                          backgroundColor: theme.surface || '#ffffff',
+                          borderColor: theme.border || 'rgba(0,0,0,0.06)',
+                          paddingLeft: `${marginPx}px`,
+                          paddingRight: `${marginPx}px`,
+                          paddingTop: `${marginPx}px`,
+                          paddingBottom: `${marginPx}px`,
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          position: 'relative',
+                        }}
+                      >
+                        {/* Page Header (Tên tài liệu chỉ xuất hiện ở đầu trang thứ nhất) */}
+                        {pageNumber === 1 && (
+                          <div
+                            className="absolute left-0 w-full text-center flex items-center justify-center text-[10px] uppercase tracking-wider opacity-40 font-semibold pointer-events-none select-none"
+                            style={{
+                              top: '48px',
+                              height: '36px',
+                              color: theme.textMuted,
+                              fontFamily: uiFont,
+                            }}
+                          >
+                            {activePage?.title || 'Untitled Document'}
+                          </div>
+                        )}
+
+                        {/* Content block: Tiptap / dangerouslySetInnerHTML inside the strict printable bounds */}
+                        <div className="w-full h-full relative" style={{ color: theme.text }}>
+                          {isActive ? (
+                            <Editor
+                              key={page.id}
+                              theme={theme}
+                              docFont={docFont}
+                              fontSize={fontSize}
+                              formatState={formatState}
+                              onEditorReady={setEditorInstance}
+                              t={t}
+                              content={page.content}
+                              onContentChange={(html) => handlePageContentChange(index, html)}
+                              isFocusMode={isFocusMode}
+                              onToggleFocusMode={handleToggleFocusMode}
+                              isPreviewMode={isPreviewMode}
+                              onTogglePreviewMode={handleTogglePreviewMode}
+                            />
+                          ) : (
+                            <div
+                              className="ProseMirror kgv-editor cursor-text text-left select-text"
+                              style={{
+                                color: theme.text,
+                                fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
+                                fontSize: `${formatState?.fontSize || fontSize || 16}px`,
+                                lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * (formatState?.lineH || 1.7))}px`,
+                                outline: 'none',
+                                height: '100%',
+                              }}
+                              dangerouslySetInnerHTML={{ __html: page.content || '<p></p>' }}
+                              onClick={() => setActivePageIndex(index)}
+                            />
+                          )}
+                        </div>
+
+                        {/* Page Footer */}
+                        <div
+                          className="absolute flex items-center justify-end text-xs opacity-60 pointer-events-none select-none"
+                          style={{
+                            bottom: '48px',
+                            left: '96px',
+                            right: '96px',
+                            height: '36px',
+                            color: theme.textMuted,
+                            fontFamily: uiFont,
+                          }}
+                        >
+                          {pageNumber}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Print Layout (Only shown when printing, maps separate pages sequentially) */}
+                <div className="hidden print:block w-full">
+                  {docPages.map((page, index) => {
+                    const pageNumber = index + 1;
+
+                    return (
+                      <div
+                        key={`print-${page.id}`}
+                        className="relative bg-white text-black print-page-break"
+                        style={{
+                          width: `${paperWidth}px`,
+                          height: `${paperHeight}px`,
+                          paddingLeft: `${marginPx}px`,
+                          paddingRight: `${marginPx}px`,
+                          paddingTop: `${marginPx}px`,
+                          paddingBottom: `${marginPx}px`,
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          pageBreakAfter: 'always',
+                        }}
+                      >
+                        {pageNumber === 1 && (
+                          <div
+                            className="absolute left-0 w-full text-center flex items-center justify-center text-[10px] uppercase tracking-wider font-semibold"
+                            style={{
+                              top: '48px',
+                              height: '36px',
+                              color: '#555555',
+                              fontFamily: uiFont,
+                            }}
+                          >
+                            {activePage?.title || 'Untitled Document'}
+                          </div>
+                        )}
+
+                        <div 
+                          className="ProseMirror kgv-editor text-left"
+                          style={{
+                            color: '#000000',
+                            fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
+                            fontSize: `${formatState?.fontSize || fontSize || 16}px`,
+                            lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * (formatState?.lineH || 1.7))}px`,
+                          }}
+                          dangerouslySetInnerHTML={{ __html: page.content || '<p></p>' }}
                         />
-                      )}
-                    </div>
-                    {/* Bottom-center footer page number */}
-                    <div className="text-center pt-8 text-xs select-none opacity-60" style={{ color: theme.textMuted, fontFamily: uiFont }}>
-                      {idx + 1}
-                    </div>
-                  </div>
-                ))}
+
+                        <div
+                          className="absolute flex items-center justify-end text-xs"
+                          style={{
+                            bottom: '48px',
+                            left: '96px',
+                            right: '96px',
+                            height: '36px',
+                            color: '#555555',
+                            fontFamily: uiFont,
+                          }}
+                        >
+                          {pageNumber}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })()}
@@ -1522,6 +2107,7 @@ export default function App() {
           onExportJson={handleExportJson}
           onImportFile={handleImportFile}
           onExportPdf={handleExportPdf}
+          onPrint={handlePrint}
           onExportDocx={handleExportDocx}
           onExportHtml={handleExportHtml}
           onExportMd={handleExportMd}
