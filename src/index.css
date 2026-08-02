@@ -353,3 +353,10 @@ html, body {
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Zoom in/Enlarge the default UI of tablet mode to a highly legible, premium level */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html {
+    font-size: 19px !important;
+  }
+}

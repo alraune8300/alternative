@@ -122,6 +122,29 @@ export default function App() {
   const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [zoomInput, setZoomInput] = useState<string>('100');
+  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    // Detect tablet size on initial load to enlarge the default UI zoom to 120%
+    const width = window.innerWidth;
+    if (width >= 768 && width < 1024) {
+      setZoomPercent(120);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const sidebarWidth = (sidebarOpen && window.innerWidth >= 1024) ? 260 : 0;
+      const rightPanelWidth = (rightOpen && window.innerWidth >= 1024) ? 300 : 0;
+      const padding = window.innerWidth >= 640 ? 48 : 32;
+      const available = window.innerWidth - sidebarWidth - rightPanelWidth - padding;
+      setContainerWidth(available);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sidebarOpen, rightOpen]);
 
   useEffect(() => {
     setZoomInput(String(zoomPercent));
@@ -1409,14 +1432,16 @@ export default function App() {
               );
             }
 
+            const autoFitScale = containerWidth < paperWidth ? (containerWidth / paperWidth) : 1;
+
             return (
-              <div className="flex flex-col items-center gap-4 w-full relative pt-8 pb-24 md:pt-16 md:pb-32 px-4 sm:px-6" style={{ maxWidth: `min(100%, ${paperWidth}px)` }}>
+              <div className="flex flex-col items-center gap-4 w-full relative pt-8 pb-24 md:pt-16 md:pb-32 px-4 sm:px-6 transition-all duration-200" style={{ maxWidth: `${paperWidth}px`, zoom: autoFitScale }}>
                 {Array.from({ length: pageCount }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-full relative rounded-2xl p-6 sm:p-10 md:p-16 kgv-adaptive-paper flex flex-col justify-between shadow-md"
+                    className="relative rounded-2xl p-6 sm:p-10 md:p-16 kgv-adaptive-paper flex flex-col justify-between shadow-md"
                     style={{
-                      maxWidth: `min(100%, ${paperWidth}px)`,
+                      width: `${paperWidth}px`,
                       minHeight: `${paperHeight}px`,
                       backgroundColor: theme.surface || '#ffffff',
                       color: theme.text,

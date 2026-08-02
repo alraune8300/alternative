@@ -189,8 +189,8 @@ function Editor({
         <div
           className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${
             (isPreviewMode || isFocusMode)
-              ? 'max-w-3xl px-4 sm:px-8 md:px-12 pt-6 pb-20 font-serif tracking-normal'
-              : 'max-w-2xl px-4 sm:px-6 md:px-8 pt-6 pb-24'
+              ? 'px-4 sm:px-8 md:px-12 pt-6 pb-20 font-serif tracking-normal'
+              : 'px-4 sm:px-6 md:px-8 pt-6 pb-24'
           }`}
           style={{
             fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
