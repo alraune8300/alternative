@@ -15,12 +15,13 @@ interface WelcomeScreenProps {
   onExportAll: () => void;
   onOpenGithubCloudSave?: () => void;
   onEmptyAllTrash?: () => Promise<void> | void;
+  onReloadProjects?: () => Promise<void> | void;
   refreshTrigger?: number;
 }
 
 type SortOption = 'updated' | 'newest' | 'oldest' | 'nameAZ' | 'nameZA' | 'pages';
 
-function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, onEmptyAllTrash, refreshTrigger }: WelcomeScreenProps) {
+function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, onEmptyAllTrash, onReloadProjects, refreshTrigger }: WelcomeScreenProps) {
     
   const [projects, setProjects] = useState<Project[]>([]);
   const activeProjects = projects.filter(p => !p.isDeleted);
@@ -197,7 +198,8 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
     };
     await saveProjectToDB(newProj);
     await loadData();
-    onOpenProject(newProj.id);
+    if (onReloadProjects) await onReloadProjects();
+    onOpenProject(newProj.id, newProj.pages[0].id);
   };
 
   const handleNewFolder = async () => {

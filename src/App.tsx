@@ -1538,9 +1538,14 @@ export default function App() {
           lang={lang}
           onEmptyAllTrash={emptyAllTrash}
           onOpenGithubCloudSave={() => setGithubModalOpen(true)}
-          onOpenProject={(projectId) => {
-            setActiveProjectId(projectId);
+          onOpenProject={(projectId, pageId) => {
+            handleSelectProject(projectId);
+            if (pageId) setActivePageId(pageId);
             setIsWorkspaceActive(true);
+          }}
+          onReloadProjects={async () => {
+            const projs = await getAllProjectsFromDB();
+            setProjects(projs);
           }}
           onImport={() => {
             const input = document.createElement('input');
