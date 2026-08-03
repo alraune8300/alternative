@@ -25,22 +25,49 @@ type Props = {
   onToggleFocusMode?: () => void;
   isPreviewMode?: boolean;
   onTogglePreviewMode?: () => void;
+  typewriterMode?: boolean;
 };
 
 function Editor({
   theme, docFont, fontSize, formatState, onEditorReady, t, content, onContentChange,
   isFocusMode = false,
   isPreviewMode = false,
+  typewriterMode = false,
 }: Props) {
   const lastEmittedContentRef = useRef(content || '');
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const callbacksRef = useRef({ onContentChange, onEditorReady });
-  useEffect(() => { callbacksRef.current = { onContentChange, onEditorReady }; }, [onContentChange, onEditorReady]);
+  const callbacksRef = useRef({ onContentChange, onEditorReady, typewriterMode });
+  const handleTypewriterScroll = (editor: import("@tiptap/react").Editor) => {
+    if (!callbacksRef.current.typewriterMode) return;
+    requestAnimationFrame(() => {
+      try {
+        const view = editor.view;
+        const state = editor.state;
+        if (!state.selection.empty) return; // Skip if text is selected
+        const coords = view.coordsAtPos(state.selection.head);
+        const scrollContainers = document.querySelectorAll(".kgv-scroll");
+        if (coords) {
+          scrollContainers.forEach(scrollContainer => {
+            if (scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+              const containerRect = scrollContainer.getBoundingClientRect();
+              const caretY = coords.top - containerRect.top + scrollContainer.scrollTop;
+              const targetScroll = caretY - (containerRect.height / 2);
+              scrollContainer.scrollTo({ top: targetScroll, behavior: "smooth" });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Typewriter scroll calculation failed:', e);
+      }
+    });
+  };
+  useEffect(() => { callbacksRef.current = { onContentChange, onEditorReady, typewriterMode }; }, [onContentChange, onEditorReady, typewriterMode]);
 
   useEffect(() => {
     return () => {
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
+        callbacksRef.current.onContentChange(lastEmittedContentRef.current);
       }
     };
   }, []);
@@ -63,6 +90,7 @@ function Editor({
     },
     onSelectionUpdate: ({ editor }) => {
       if (callbacksRef.current.onEditorReady) callbacksRef.current.onEditorReady(editor);
+      handleTypewriterScroll(editor);
     },
     onBlur: ({ editor }) => {
       const html = editor.getHTML();
@@ -76,6 +104,8 @@ function Editor({
       const html = editor.getHTML();
       lastEmittedContentRef.current = html;
       
+      handleTypewriterScroll(editor);
+
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
@@ -85,7 +115,7 @@ function Editor({
     },
     onTransaction: ({ transaction }) => {
       // Keep scroll coordinates locked when selections change from external formatting commands
-      if (transaction.selectionSet) {
+      if (transaction.selectionSet && !callbacksRef.current.typewriterMode) {
         const scrollContainers = document.querySelectorAll('.overflow-y-auto');
         scrollContainers.forEach((scrollContainer) => {
           const prevScroll = scrollContainer.scrollTop;
@@ -242,7 +272,7 @@ function Editor({
         <div
           className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${
             (isPreviewMode || isFocusMode)
-              ? 'px-4 sm:px-8 md:px-12 pt-6 pb-20 font-serif tracking-normal'
+              ? 'px-4 sm:px-8 md:px-12 pt-6 pb-20 tracking-normal'
               : 'px-4 sm:px-6 md:px-8 pt-6 pb-24'
           }`}
           style={{

@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Eraser, Plus, Minus, ZoomIn,
   PanelLeft, Settings, Maximize2, Minimize2, BookOpen,
-  Divide, Cloud
+  Divide, Cloud, Target
 } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import type { ThemeColors } from './types';
@@ -31,6 +31,8 @@ type Props = {
   onToggleFocusMode?: () => void;
   isPreviewMode?: boolean;
   onTogglePreviewMode?: () => void;
+  typewriterMode?: boolean;
+  onToggleTypewriterMode?: () => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -53,6 +55,7 @@ function Toolbar({
   rightOpen, onToggleSettings,
   isFocusMode, onToggleFocusMode,
   isPreviewMode, onTogglePreviewMode,
+  typewriterMode, onToggleTypewriterMode,
   onUndo, onRedo, canUndo, canRedo,
   zoomPercent, zoomInput,
   onZoomIn, onZoomOut, onZoomReset,
@@ -330,6 +333,14 @@ function Toolbar({
 
             
       <div className="ml-auto flex items-center gap-0.5">
+        {onToggleTypewriterMode && (
+          <ToolBtn
+            onClick={onToggleTypewriterMode}
+            icon={<Target size={16} />}
+            label={t.typewriterMode || 'Typewriter Scroll'}
+            active={typewriterMode}
+          />
+        )}
         {onToggleFocusMode && (
           <ToolBtn
             onClick={onToggleFocusMode}

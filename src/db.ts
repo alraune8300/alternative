@@ -12,6 +12,7 @@ export interface AppSettings {
   pageFormat?: PageFormat;
   isLeftPanelOpen?: boolean;
   isRightPanelOpen?: boolean;
+  typewriterMode?: boolean;
   isFocusMode?: boolean;
   isPreviewMode?: boolean;
   language?: string;

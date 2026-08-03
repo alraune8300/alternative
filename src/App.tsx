@@ -134,6 +134,7 @@ export default function App() {
 
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [typewriterMode, setTypewriterMode] = useState(false);
   const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [zoomInput, setZoomInput] = useState<string>('100');
@@ -346,64 +347,76 @@ export default function App() {
     }
   }, []);
 
+  const restoreScroll = useCallback(() => {
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      if (editorInstance) {
+        const editor = editorInstance as unknown as {
+          commands: { focus: () => void };
+          view: {
+            state: { selection: { head: number } };
+            coordsAtPos: (pos: number) => { top: number } | null;
+          };
+          isDestroyed: boolean;
+        };
+        if (!editor?.isDestroyed && typeof editor?.commands?.focus === 'function') {
+          try {
+            editor.commands.focus();
+            const view = editor.view;
+            if (view && view.state) {
+              const coords = view.coordsAtPos(view.state.selection.head);
+              const scrollContainers = document.querySelectorAll('.kgv-scroll');
+              if (coords) {
+                scrollContainers.forEach((scrollContainer) => {
+                  const container = scrollContainer as HTMLElement;
+                  if (container.scrollHeight > container.clientHeight) {
+                    const containerRect = container.getBoundingClientRect();
+                    const caretY = coords.top - containerRect.top + container.scrollTop;
+                    const targetScroll = caretY - (containerRect.height / 2);
+                    container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+                  }
+                });
+              }
+            }
+          } catch (err) {
+            console.warn('Restore scroll failed:', err);
+          }
+        }
+      }
+    }, 100);
+  }, [editorInstance]);
+
   const handleExitFocusOrPreview = useCallback(() => {
     setIsFocusMode(false);
     setIsPreviewMode(false);
+    restoreScroll();
+  }, [restoreScroll]);
+
+  const handleToggleTypewriterMode = useCallback(() => {
+    setTypewriterMode(prev => {
+      const next = !prev;
+      saveAppSettings({ typewriterMode: next });
+      return next;
+    });
   }, []);
 
   const handleToggleFocusMode = useCallback(() => {
     setIsFocusMode(prev => {
       const next = !prev;
       setIsPreviewMode(false);
-
-      // Inject micro-task layout reset using a setTimeout to explicitly re-center/scroll viewport
-      setTimeout(() => {
-        window.scrollTo(0, 0);
-        const scrollParent = document.querySelector('.kgv-scroll');
-        if (scrollParent) {
-          scrollParent.scrollTop = 0;
-        }
-        
-        if (editorInstance) {
-          const editor = editorInstance as unknown as {
-            commands: { focus: () => { run: () => void } };
-            view: {
-              state: { selection: { from: number } };
-              domAtPos: (pos: number) => { node: Node };
-            };
-          };
-          if (!editor?.isDestroyed && typeof editor?.commands?.focus === 'function') {
-            try {
-              editor?.commands?.focus();
-              const view = editor.view;
-              if (view) {
-                const { state } = view;
-                const { selection } = state;
-                const { from } = selection;
-                const domNode = view.domAtPos(from).node;
-                const element = domNode instanceof HTMLElement ? domNode : domNode.parentElement;
-                if (element && typeof element.scrollIntoView === 'function') {
-                  element.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                }
-              }
-            } catch (err) {
-              console.warn('Selection scroll-into-view failed:', err);
-            }
-          }
-        }
-      }, 50);
-
+      restoreScroll();
       return next;
     });
-  }, [editorInstance]);
+  }, [restoreScroll]);
 
   const handleTogglePreviewMode = useCallback(() => {
     setIsPreviewMode(prev => {
       const next = !prev;
       setIsFocusMode(false);
+      restoreScroll();
       return next;
     });
-  }, []);
+  }, [restoreScroll]);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedProjRef = useRef<string>('');
@@ -500,6 +513,7 @@ export default function App() {
         if (settings.isRightPanelOpen !== undefined) setRightOpen(settings.isRightPanelOpen);
         if (settings.isFocusMode !== undefined) setIsFocusMode(settings.isFocusMode);
         if (settings.isPreviewMode !== undefined) setIsPreviewMode(settings.isPreviewMode);
+        if (settings.typewriterMode !== undefined) setTypewriterMode(settings.typewriterMode);
         if (settings.language) {
           setLang(settings.language as Lang);
           LS.set('kgv-lang', settings.language);
@@ -849,7 +863,9 @@ export default function App() {
     formatState.lineH,
     docFont,
     fontSize,
-    splitContentIntoPages
+    splitContentIntoPages,
+    isFocusMode,
+    isPreviewMode
   ]);
 
   const handlePageContentChange = useCallback((pageIndex: number, newPageHTML: string) => {
@@ -1738,6 +1754,8 @@ export default function App() {
                 onToggleFocusMode={handleToggleFocusMode}
                 isPreviewMode={isPreviewMode}
                 onTogglePreviewMode={handleTogglePreviewMode}
+                typewriterMode={typewriterMode}
+                onToggleTypewriterMode={handleToggleTypewriterMode}
                 onUndo={() => (editorInstance as TiptapEditorType)?.chain().focus().undo().run()}
                 onRedo={() => (editorInstance as TiptapEditorType)?.chain().focus().redo().run()}
                 canUndo={Boolean(!editorInstance?.isDestroyed && (editorInstance as unknown as { can: () => { undo: () => boolean, redo: () => boolean } })?.can?.()?.undo?.())}
@@ -1888,6 +1906,7 @@ export default function App() {
                     onToggleFocusMode={handleToggleFocusMode}
                     isPreviewMode={isPreviewMode}
                     onTogglePreviewMode={handleTogglePreviewMode}
+                    typewriterMode={typewriterMode}
                   />
                 </div>
               );
@@ -1917,6 +1936,7 @@ export default function App() {
                     onToggleFocusMode={handleToggleFocusMode}
                     isPreviewMode={isPreviewMode}
                     onTogglePreviewMode={handleTogglePreviewMode}
+                    typewriterMode={typewriterMode}
                   />
                 </div>
               );
@@ -1996,6 +2016,7 @@ export default function App() {
                               onToggleFocusMode={handleToggleFocusMode}
                               isPreviewMode={isPreviewMode}
                               onTogglePreviewMode={handleTogglePreviewMode}
+                              typewriterMode={typewriterMode}
                             />
                           ) : (
                             <div
