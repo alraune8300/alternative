@@ -268,37 +268,39 @@ export default function App() {
     };
   }, [recalculatePagination]);
 
-  // 2. STICKY TOOLBAR ENGINE: Position the entire App on visualViewport to handle mobile keyboards seamlessly
-  const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
+  const [mobileRibbonStyle, setMobileRibbonStyle] = useState<React.CSSProperties>({});
+
+  // 2. STICKY TOOLBAR ENGINE: Position Format Ribbon dynamically on mobile Viewport
   useEffect(() => {
     const viewport = window.visualViewport;
     if (!viewport) return;
 
-    const updateViewportPosition = () => {
-      // Apply on mobile/tablet to ensure keyboard doesn't push UI off-screen
+    const updateToolbarPosition = () => {
       if (window.innerWidth < 768) {
-        setViewportStyle({
+        setMobileRibbonStyle({
           position: 'fixed',
           top: `${viewport.offsetTop}px`,
           left: `${viewport.offsetLeft}px`,
           width: `${viewport.width}px`,
-          height: `${viewport.height}px`,
+          zIndex: 40,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          transition: 'none',
         });
       } else {
-        setViewportStyle({});
+        setMobileRibbonStyle({});
       }
     };
 
-    viewport.addEventListener('resize', updateViewportPosition);
-    viewport.addEventListener('scroll', updateViewportPosition);
-    window.addEventListener('resize', updateViewportPosition);
+    viewport.addEventListener('resize', updateToolbarPosition);
+    viewport.addEventListener('scroll', updateToolbarPosition);
+    window.addEventListener('resize', updateToolbarPosition);
 
-    updateViewportPosition();
+    updateToolbarPosition();
 
     return () => {
-      viewport.removeEventListener('resize', updateViewportPosition);
-      viewport.removeEventListener('scroll', updateViewportPosition);
-      window.removeEventListener('resize', updateViewportPosition);
+      viewport.removeEventListener('resize', updateToolbarPosition);
+      viewport.removeEventListener('scroll', updateToolbarPosition);
+      window.removeEventListener('resize', updateToolbarPosition);
     };
   }, [showRibbon]);
 
@@ -1601,8 +1603,7 @@ export default function App() {
         background: theme.bg,
         color: theme.text,
         fontFamily: `'${uiFont}', sans-serif`,
-        transition: 'background 300ms, color 300ms',
-        ...viewportStyle
+        transition: 'background 300ms, color 300ms'
       }}
     >
       {/* Mobile/Tablet backdrop for sidebar */}
@@ -1673,6 +1674,7 @@ export default function App() {
             className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between px-4 transition-all duration-200"
             style={{
               backgroundColor: theme.surface,
+              ...mobileRibbonStyle
             }}
           >
             <div className="flex-1 min-w-0">
