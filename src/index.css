@@ -290,6 +290,7 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  overscroll-behavior-y: none;
 }
 
 /* Tablet light vs Laptop ultra-light adaptive styling */

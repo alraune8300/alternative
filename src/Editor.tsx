@@ -258,6 +258,7 @@ function Editor({
       {/* Central Editor Container */}
       <div
         className="flex-1 overflow-y-auto kgv-scroll transition-all duration-300 ease-in-out relative flex justify-center cursor-text"
+        style={{ overscrollBehaviorY: 'none' }}
         onClick={(e) => {
           if (!isPreviewMode && editor && !editor.isDestroyed) {
             const target = e.target as HTMLElement;
