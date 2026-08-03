@@ -304,6 +304,37 @@ export default function App() {
     };
   }, [showRibbon]);
 
+  const [viewportAppStyle, setViewportAppStyle] = useState<React.CSSProperties>({});
+  
+  // 3. LOCK APP VIEWPORT: Prevent virtual keyboard from pushing the entire layout up
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const lockViewport = () => {
+      // Apply offset to counteract the browser's automatic upward shift when keyboard appears
+      setViewportAppStyle({
+        position: 'fixed',
+        top: `${viewport.offsetTop}px`,
+        left: `${viewport.offsetLeft}px`,
+        width: `${viewport.width}px`,
+        height: `${viewport.height}px`,
+      });
+    };
+
+    viewport.addEventListener('resize', lockViewport);
+    viewport.addEventListener('scroll', lockViewport);
+    window.addEventListener('resize', lockViewport);
+    
+    lockViewport();
+    
+    return () => {
+      viewport.removeEventListener('resize', lockViewport);
+      viewport.removeEventListener('scroll', lockViewport);
+      window.removeEventListener('resize', lockViewport);
+    };
+  }, []);
+
   const [editorInstance, setEditorInstance] = useState<TiptapEditorType | null>(null);
 
   const handleFormatChange = useCallback((updates: Partial<FormatState>) => {
@@ -1603,7 +1634,8 @@ export default function App() {
         background: theme.bg,
         color: theme.text,
         fontFamily: `'${uiFont}', sans-serif`,
-        transition: 'background 300ms, color 300ms'
+        transition: 'background 300ms, color 300ms',
+        ...viewportAppStyle
       }}
     >
       {/* Mobile/Tablet backdrop for sidebar */}
