@@ -222,8 +222,7 @@ export default function App() {
     mode: 'pages',
   });
 
-  const [docPages, setDocPages] = useState<{ id: string; content: string }[]>([]);
-  const [activePageIndex, setActivePageIndex] = useState(0);
+
 
   const recalculatePagination = useCallback(() => {
     // No-op under the new Multi-page DOM Wrapper architecture
@@ -664,8 +663,17 @@ export default function App() {
           else updatedDrafts[0] = { ...updatedDrafts[0], ...patch, lastModified: now };
         }
 
+        let updatedTitle = proj.title;
+        if (patch.title !== undefined) {
+          // Sync project title if editing the first page
+          if (updatedPages[0]?.id === activePageId || updatedDrafts[0]?.id === activePageId || !pageFound) {
+            updatedTitle = patch.title;
+          }
+        }
+
         const updatedProj: Project = {
           ...proj,
+          title: updatedTitle,
           pages: updatedPages,
           drafts: updatedDrafts,
           lastModified: now,
@@ -680,262 +688,6 @@ export default function App() {
   const handleContentChange = useCallback((html: string) => {
     updateActivePage({ content: html });
   }, [updateActivePage]);
-
-  // --- MULTI-PAGE PAGINATION SYSTEM ---
-  const splitContentIntoPages = useCallback((
-    htmlContent: string,
-    paperWidth: number,
-    printableHeight: number,
-    marginPx: number,
-    fontFam: string,
-    fontSizeVal: number,
-    lineHVal: number
-  ): { id: string; content: string }[] => {
-    if (!htmlContent || htmlContent.trim() === '' || htmlContent === '<p></p>') {
-      return [{ id: 'page-1', content: '<p></p>' }];
-    }
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlContent, 'text/html');
-    const sourceNodes = Array.from(doc.body.children) as HTMLElement[];
-
-    const pagesData: string[] = [];
-
-    // Create a hidden workspace container for measuring
-    const workspace = document.createElement('div');
-    workspace.className = 'ProseMirror kgv-editor';
-    workspace.style.position = 'absolute';
-    workspace.style.visibility = 'hidden';
-    workspace.style.pointerEvents = 'none';
-    workspace.style.left = '-9999px';
-    workspace.style.top = '0';
-    workspace.style.width = `${paperWidth - marginPx * 2}px`;
-    workspace.style.fontFamily = `'${fontFam}', Georgia, serif`;
-    workspace.style.fontSize = `${fontSizeVal}px`;
-    const absLineHeight = Math.round(fontSizeVal * lineHVal);
-    workspace.style.lineHeight = `${absLineHeight}px`;
-    workspace.style.padding = '0';
-    workspace.style.margin = '0';
-    document.body.appendChild(workspace);
-
-    const commitPage = () => {
-      if (workspace.innerHTML) {
-        pagesData.push(workspace.innerHTML);
-      }
-      workspace.innerHTML = '';
-    };
-
-    workspace.innerHTML = ''; // Start clean
-
-    for (let i = 0; i < sourceNodes.length; i++) {
-      const node = sourceNodes[i].cloneNode(true) as HTMLElement;
-      workspace.appendChild(node);
-
-      const rect = node.getBoundingClientRect();
-      const workspaceRect = workspace.getBoundingClientRect();
-      const nodeBottom = rect.bottom - workspaceRect.top;
-      const nodeHeight = rect.bottom - rect.top;
-
-      if (nodeBottom > printableHeight) {
-        const tagName = node.tagName.toUpperCase();
-
-        if (tagName === 'UL' || tagName === 'OL') {
-          workspace.removeChild(node);
-          
-          let currentList = document.createElement(tagName);
-          Array.from(node.attributes).forEach(attr => currentList.setAttribute(attr.name, attr.value));
-          workspace.appendChild(currentList);
-          
-          const listItems = Array.from(node.children) as HTMLElement[];
-          for (let j = 0; j < listItems.length; j++) {
-            const li = listItems[j];
-            currentList.appendChild(li);
-
-            const liRect = li.getBoundingClientRect();
-            const wsRect = workspace.getBoundingClientRect();
-            const liBottom = liRect.bottom - wsRect.top;
-            const liHeight = liRect.bottom - liRect.top;
-
-            if (liBottom > printableHeight) {
-              currentList.removeChild(li);
-
-              if (currentList.children.length === 0 && workspace.children.length > 1 && liHeight <= printableHeight) {
-                // List is empty, page has other content, and LI fits on new page.
-                workspace.removeChild(currentList);
-                commitPage();
-
-                currentList = document.createElement(tagName);
-                Array.from(node.attributes).forEach(attr => currentList.setAttribute(attr.name, attr.value));
-                if (tagName === 'OL') {
-                  const prevStart = parseInt(node.getAttribute('start') || '1', 10);
-                  currentList.setAttribute('start', (prevStart + j).toString());
-                }
-                workspace.appendChild(currentList);
-                currentList.appendChild(li);
-              } else if (currentList.children.length > 0) {
-                // List has items, commit page.
-                commitPage();
-
-                currentList = document.createElement(tagName);
-                Array.from(node.attributes).forEach(attr => currentList.setAttribute(attr.name, attr.value));
-                if (tagName === 'OL') {
-                  const prevStart = parseInt(node.getAttribute('start') || '1', 10);
-                  currentList.setAttribute('start', (prevStart + j).toString());
-                }
-                workspace.appendChild(currentList);
-                currentList.appendChild(li);
-              } else {
-                // Keep it on the current page to avoid infinite loop.
-                currentList.appendChild(li);
-              }
-            }
-          }
-        } else {
-          // Not a list
-          if (workspace.children.length > 1 && nodeHeight <= printableHeight) {
-            // It fits on a blank page, push it to the next page
-            workspace.removeChild(node);
-            commitPage();
-            workspace.appendChild(node);
-          } else {
-            // Keep it on current page to avoid empty pages
-          }
-        }
-      }
-    }
-
-    commitPage();
-    document.body.removeChild(workspace);
-
-    if (pagesData.length === 0) {
-      return [{ id: 'page-1', content: '<p></p>' }];
-    }
-
-    return pagesData.map((content, idx) => ({
-      id: `page-${idx + 1}`,
-      content,
-    }));
-  }, []);
-
-  // Load pages initially or when active document changes
-  useEffect(() => {
-    if (!activePage) {
-      setDocPages([{ id: 'page-1', content: '<p></p>' }]);
-      setActivePageIndex(0);
-      return;
-    }
-
-    const fullHTML = activePage.content || '';
-    
-    const paperWidth = pageFormat.orientation === 'landscape'
-      ? (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123)
-      : (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794);
-    const paperHeight = pageFormat.orientation === 'landscape'
-      ? (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794)
-      : (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123);
-
-    const marginPx = 72 * 4 / 3; // 96px
-    const footerHeight = 48; // 36pt
-    const printableHeight = paperHeight - marginPx * 2 - footerHeight;
-    const fontFam = formatState.fontFam || docFont;
-    const fontSizeVal = formatState.fontSize || fontSize || 16;
-    const lineHVal = formatState.lineH || 1.7;
-
-    const initialPages = splitContentIntoPages(
-      fullHTML,
-      paperWidth,
-      printableHeight,
-      marginPx,
-      fontFam,
-      fontSizeVal,
-      lineHVal
-    );
-
-    setDocPages(initialPages);
-    setActivePageIndex(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    activePage?.id,
-    pageFormat.paperSize,
-    pageFormat.orientation,
-    formatState.fontFam,
-    formatState.fontSize,
-    formatState.lineH,
-    docFont,
-    fontSize,
-    splitContentIntoPages,
-    isFocusMode,
-    isPreviewMode
-  ]);
-
-  const handlePageContentChange = useCallback((pageIndex: number, newPageHTML: string) => {
-    setDocPages((prevPages) => {
-      const updatedPages = [...prevPages];
-      updatedPages[pageIndex] = {
-        ...updatedPages[pageIndex],
-        content: newPageHTML
-      };
-
-      const fullHTML = updatedPages.map(p => p.content).join('');
-
-      const paperWidth = pageFormat.orientation === 'landscape'
-        ? (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123)
-        : (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794);
-      const paperHeight = pageFormat.orientation === 'landscape'
-        ? (PAPER_SIZES_PX[pageFormat.paperSize]?.w || 794)
-        : (PAPER_SIZES_PX[pageFormat.paperSize]?.h || 1123);
-
-    const marginPx = 72 * 4 / 3; // 96px
-      const footerHeight = 48; // 36pt
-      const printableHeight = paperHeight - marginPx * 2 - footerHeight;
-      const fontFam = formatState.fontFam || docFont;
-      const fontSizeVal = formatState.fontSize || fontSize || 16;
-      const lineHVal = formatState.lineH || 1.7;
-
-      const newSplitPages = splitContentIntoPages(
-        fullHTML,
-        paperWidth,
-        printableHeight,
-        marginPx,
-        fontFam,
-        fontSizeVal,
-        lineHVal
-      );
-
-      // Save combined flat content back to database/IndexedDB
-      updateActivePage({ content: fullHTML });
-
-      let newActiveIndex = pageIndex;
-      if (newActiveIndex >= newSplitPages.length) {
-        newActiveIndex = newSplitPages.length - 1;
-      }
-
-      if (newSplitPages.length > prevPages.length && pageIndex === prevPages.length - 1) {
-        newActiveIndex = newSplitPages.length - 1;
-      } else if (newSplitPages[pageIndex] && newSplitPages[pageIndex].content.length < newPageHTML.length) {
-        if (pageIndex + 1 < newSplitPages.length) {
-          newActiveIndex = pageIndex + 1;
-        }
-      }
-
-      if (newActiveIndex !== activePageIndex) {
-        setTimeout(() => setActivePageIndex(newActiveIndex), 0);
-      }
-
-      return newSplitPages;
-    });
-  }, [
-    pageFormat.paperSize,
-    pageFormat.orientation,
-    formatState.fontFam,
-    formatState.fontSize,
-    formatState.lineH,
-    docFont,
-    fontSize,
-    splitContentIntoPages,
-    updateActivePage,
-    activePageIndex
-  ]);
 
   // Project Switcher handler
   const handleSelectProject = useCallback((projectId: string) => {
@@ -1944,7 +1696,6 @@ export default function App() {
 
             const autoFitScale = containerWidth < paperWidth ? (containerWidth / paperWidth) : 1;
             const marginPx = 72 * 4 / 3; // 96px
-            const pageGap = 24; // 24px gap between pages
 
             return (
               <div 
@@ -1954,168 +1705,95 @@ export default function App() {
                   zoom: autoFitScale 
                 }}
               >
-                {/* On-screen physical independent page containers */}
+                {/* On-screen continuous physical page container */}
                 <div className="flex flex-col items-center w-full no-print">
-                  {docPages.map((page, index) => {
-                    const pageNumber = index + 1;
-                    const isActive = index === activePageIndex;
+                  <div
+                    className="paper-page relative rounded-lg shadow-md transition-all duration-200 border"
+                    style={{
+                      width: `${paperWidth}px`,
+                      minHeight: `${paperHeight}px`,
+                      backgroundColor: theme.surface || '#ffffff',
+                      borderColor: theme.border || 'rgba(0,0,0,0.06)',
+                      paddingLeft: `${marginPx}px`,
+                      paddingRight: `${marginPx}px`,
+                      paddingTop: `${marginPx}px`,
+                      paddingBottom: `${marginPx}px`,
+                      boxSizing: 'border-box',
+                      position: 'relative',
+                      backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent calc(${paperHeight}px - 2px), #e5e7eb calc(${paperHeight}px - 2px), #e5e7eb ${paperHeight}px)`
+                    }}
+                  >
+                    {/* Page Header (Tên tài liệu) */}
+                    <div
+                      className="absolute left-0 w-full text-center flex items-center justify-center text-[10px] uppercase tracking-wider opacity-40 font-semibold pointer-events-none select-none"
+                      style={{
+                        top: '48px',
+                        height: '36px',
+                        color: theme.textMuted,
+                        fontFamily: uiFont,
+                      }}
+                    >
+                      {activePage?.title || 'Untitled Document'}
+                    </div>
 
-                    return (
-                      <div
-                        key={page.id}
-                        className="paper-page relative rounded-lg shadow-md transition-all duration-200 border"
-                        onScroll={(e) => {
-                          if (e.currentTarget.scrollTop !== 0) {
-                            e.currentTarget.scrollTop = 0;
-                          }
-                        }}
-                        style={{
-                          width: `${paperWidth}px`,
-                          height: `${paperHeight}px`,
-                          marginBottom: `${pageGap}px`,
-                          backgroundColor: theme.surface || '#ffffff',
-                          borderColor: theme.border || 'rgba(0,0,0,0.06)',
-                          paddingLeft: `${marginPx}px`,
-                          paddingRight: `${marginPx}px`,
-                          paddingTop: `${marginPx}px`,
-                          paddingBottom: `${marginPx}px`,
-                          boxSizing: 'border-box',
-                          overflow: 'hidden',
-                          position: 'relative',
-                        }}
-                      >
-                        {/* Page Header (Tên tài liệu chỉ xuất hiện ở đầu trang thứ nhất) */}
-                        {pageNumber === 1 && (
-                          <div
-                            className="absolute left-0 w-full text-center flex items-center justify-center text-[10px] uppercase tracking-wider opacity-40 font-semibold pointer-events-none select-none"
-                            style={{
-                              top: '48px',
-                              height: '36px',
-                              color: theme.textMuted,
-                              fontFamily: uiFont,
-                            }}
-                          >
-                            {activePage?.title || 'Untitled Document'}
-                          </div>
-                        )}
-
-                        {/* Content block: Tiptap / dangerouslySetInnerHTML inside the strict printable bounds */}
-                        <div className="w-full h-full relative" style={{ color: theme.text }}>
-                          {isActive ? (
-                            <Editor
-                              key={page.id}
-                              theme={theme}
-                              docFont={docFont}
-                              fontSize={fontSize}
-                              formatState={formatState}
-                              onEditorReady={setEditorInstance}
-                              t={t}
-                              content={page.content}
-                              onContentChange={(html) => handlePageContentChange(index, html)}
-                              isFocusMode={isFocusMode}
-                              onToggleFocusMode={handleToggleFocusMode}
-                              isPreviewMode={isPreviewMode}
-                              onTogglePreviewMode={handleTogglePreviewMode}
-                              typewriterMode={typewriterMode}
-                            />
-                          ) : (
-                            <div
-                              className="ProseMirror kgv-editor cursor-text text-left select-text"
-                              style={{
-                                color: theme.text,
-                                fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
-                                fontSize: `${formatState?.fontSize || fontSize || 16}px`,
-                                lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * (formatState?.lineH || 1.7))}px`,
-                                outline: 'none',
-                                height: '100%',
-                              }}
-                              dangerouslySetInnerHTML={{ __html: page.content || '<p></p>' }}
-                              onClick={() => setActivePageIndex(index)}
-                            />
-                          )}
-                        </div>
-
-                        {/* Page Footer */}
-                        <div
-                          className="absolute flex items-center justify-end text-xs opacity-60 pointer-events-none select-none"
-                          style={{
-                            bottom: '48px',
-                            left: '96px',
-                            right: '96px',
-                            height: '36px',
-                            color: theme.textMuted,
-                            fontFamily: uiFont,
-                          }}
-                        >
-                          {pageNumber}
-                        </div>
-                      </div>
-                    );
-                  })}
+                    {/* Content block: Single Tiptap editor */}
+                    <div className="w-full h-full relative" style={{ color: theme.text }}>
+                      <Editor
+                        key={activePage?.id || 'empty'}
+                        theme={theme}
+                        docFont={docFont}
+                        fontSize={fontSize}
+                        formatState={formatState}
+                        onEditorReady={setEditorInstance}
+                        t={t}
+                        content={activePage?.content || ''}
+                        onContentChange={handleContentChange}
+                        isFocusMode={isFocusMode}
+                        onToggleFocusMode={handleToggleFocusMode}
+                        isPreviewMode={isPreviewMode}
+                        onTogglePreviewMode={handleTogglePreviewMode}
+                        typewriterMode={typewriterMode}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Print Layout (Only shown when printing, maps separate pages sequentially) */}
+                {/* Print Layout (Only shown when printing) */}
                 <div className="hidden print:block w-full">
-                  {docPages.map((page, index) => {
-                    const pageNumber = index + 1;
+                  <div
+                    className="relative bg-white text-black"
+                    style={{
+                      width: `${paperWidth}px`,
+                      paddingLeft: `${marginPx}px`,
+                      paddingRight: `${marginPx}px`,
+                      paddingTop: `${marginPx}px`,
+                      paddingBottom: `${marginPx}px`,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div
+                      className="absolute left-0 w-full text-center flex items-center justify-center text-[10px] uppercase tracking-wider font-semibold"
+                      style={{
+                        top: '48px',
+                        height: '36px',
+                        color: '#555555',
+                        fontFamily: uiFont,
+                      }}
+                    >
+                      {activePage?.title || 'Untitled Document'}
+                    </div>
 
-                    return (
-                      <div
-                        key={`print-${page.id}`}
-                        className="relative bg-white text-black print-page-break"
-                        style={{
-                          width: `${paperWidth}px`,
-                          height: `${paperHeight}px`,
-                          paddingLeft: `${marginPx}px`,
-                          paddingRight: `${marginPx}px`,
-                          paddingTop: `${marginPx}px`,
-                          paddingBottom: `${marginPx}px`,
-                          boxSizing: 'border-box',
-                          overflow: 'hidden',
-                          pageBreakAfter: 'always',
-                        }}
-                      >
-                        {pageNumber === 1 && (
-                          <div
-                            className="absolute left-0 w-full text-center flex items-center justify-center text-[10px] uppercase tracking-wider font-semibold"
-                            style={{
-                              top: '48px',
-                              height: '36px',
-                              color: '#555555',
-                              fontFamily: uiFont,
-                            }}
-                          >
-                            {activePage?.title || 'Untitled Document'}
-                          </div>
-                        )}
-
-                        <div 
-                          className="ProseMirror kgv-editor text-left"
-                          style={{
-                            color: '#000000',
-                            fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
-                            fontSize: `${formatState?.fontSize || fontSize || 16}px`,
-                            lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * (formatState?.lineH || 1.7))}px`,
-                          }}
-                          dangerouslySetInnerHTML={{ __html: page.content || '<p></p>' }}
-                        />
-
-                        <div
-                          className="absolute flex items-center justify-end text-xs"
-                          style={{
-                            bottom: '48px',
-                            left: '96px',
-                            right: '96px',
-                            height: '36px',
-                            color: '#555555',
-                            fontFamily: uiFont,
-                          }}
-                        >
-                          {pageNumber}
-                        </div>
-                      </div>
-                    );
-                  })}
+                    <div 
+                      className="ProseMirror kgv-editor text-left"
+                      style={{
+                        color: '#000000',
+                        fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
+                        fontSize: `${formatState?.fontSize || fontSize || 16}px`,
+                        lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * (formatState?.lineH || 1.7))}px`,
+                      }}
+                      dangerouslySetInnerHTML={{ __html: activePage?.content || '<p></p>' }}
+                    />
+                  </div>
                 </div>
               </div>
             );
