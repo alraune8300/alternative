@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, FolderOpen, Plus, Download, Upload, Grid, List, Trash2, Edit2, Check, X, RotateCcw, Home, AlertCircle, Search, ArrowUpDown, FileJson } from 'lucide-react';
+import { FileText, FolderOpen, Plus, Download, Upload, Grid, List, Trash2, Edit2, Check, X, RotateCcw, Home, AlertCircle, Search, ArrowUpDown, FileJson, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Project, ThemeColors, Folder } from './types';
 import { db, getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAllFoldersFromDB, saveFolderToDB } from './db';
@@ -690,9 +690,97 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
             <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-2'}>
               
               {/* Render Folders First */}
-              {displayedFolders.map((folder) => (
-                <div 
-                  key={folder.id}
+              {displayedFolders.map((folder) => {
+                if (viewMode === 'grid') {
+                  return (
+                    <div 
+                      key={folder.id}
+                      onClick={() => tab === 'active' && setCurrentFolderId(folder.id)}
+                      className={`group relative w-full h-[140px] pt-[16px] transition-all ${tab === 'active' ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+                      onMouseEnter={(e) => {
+                        const bgEls = e.currentTarget.querySelectorAll('.folder-bg');
+                        bgEls.forEach(el => (el as HTMLElement).style.borderColor = theme.border);
+                      }}
+                      onMouseLeave={(e) => {
+                        const bgEls = e.currentTarget.querySelectorAll('.folder-bg');
+                        bgEls.forEach(el => (el as HTMLElement).style.borderColor = theme.borderFaint);
+                      }}
+                    >
+                      {/* Folder Tab Shape */}
+                      <div 
+                        className="folder-bg absolute top-0 left-0 w-[45%] h-[17px] rounded-tl-2xl rounded-tr-lg border-t border-l border-r transition-colors"
+                        style={{ backgroundColor: theme.surface, borderColor: theme.borderFaint }}
+                      />
+                      {/* Folder Body Shape */}
+                      <div 
+                        className="folder-bg absolute top-[16px] left-0 right-0 bottom-0 rounded-b-2xl rounded-tr-2xl border transition-colors shadow-sm"
+                        style={{ backgroundColor: theme.surface, borderColor: theme.borderFaint, borderTopLeftRadius: 0 }}
+                      />
+                      {/* Mask Line */}
+                      <div 
+                        className="absolute top-[16px] left-[1px] h-[2px] z-10"
+                        style={{ width: 'calc(45% - 2px)', backgroundColor: theme.surface }}
+                      />
+
+                      {/* Content */}
+                      <div className="relative z-20 w-full h-full p-5 flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0 pr-4">
+                            {editingFolderId === folder.id && tab === 'active' ? (
+                              <div className="flex items-center gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                                <input 
+                                  type="text" 
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="w-full bg-transparent border-b outline-none px-1 py-0.5 text-xl font-serif"
+                                  style={{ borderColor: theme.accent, color: theme.text, fontFamily: `'${uiFont}', Georgia, serif` }}
+                                  autoFocus
+                                  onKeyDown={(e) => e.key === 'Enter' && handleSaveEditFolder(folder, e as unknown as React.MouseEvent)}
+                                />
+                                <button onClick={(e) => handleSaveEditFolder(folder, e)} className="p-1 rounded text-green-500 hover:bg-green-500/10 transition-colors cursor-pointer"><Check size={14}/></button>
+                                <button onClick={(e) => { e.stopPropagation(); setEditingFolderId(null); }} className="p-1 rounded text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"><X size={14}/></button>
+                              </div>
+                            ) : (
+                              <h3 className="text-xl font-medium tracking-wide truncate" style={{ color: theme.text, fontFamily: `'${uiFont}', Georgia, serif` }}>
+                                {folder.name || 'Untitled Folder'}
+                              </h3>
+                            )}
+                          </div>
+                          {/* Actions (Fade in on hover) */}
+                          <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                            {tab === 'active' ? (
+                              <>
+                                <button onClick={(e) => handleStartEditFolder(folder.id, folder.name, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Rename">
+                                  <Edit2 size={14} />
+                                </button>
+                                <button onClick={(e) => handleSoftDeleteFolder(folder, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Move to Trash">
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={(e) => handleRestoreFolder(folder, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Restore">
+                                  <RotateCcw size={14} />
+                                </button>
+                                <button onClick={(e) => promptHardDelete('folder', folder.id, folder.name, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Permanently Delete">
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[0.7rem] font-light" style={{ color: theme.textMuted }}>
+                          <Clock size={12} strokeWidth={1.5} />
+                          <span>{folder.created_at ? format(new Date(folder.created_at), 'MMM d, yyyy') : 'Recently'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div 
+                    key={folder.id}
                   onClick={() => tab === 'active' && setCurrentFolderId(folder.id)}
                   className={`group relative flex flex-col justify-center px-4 py-3 rounded-md border transition-colors ${tab === 'active' ? 'cursor-pointer hover:-translate-y-0.5 shadow-sm' : ''}`}
                   style={{ 
@@ -759,7 +847,8 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {/* Render Projects */}
               {displayedProjects.map((project) => (
@@ -816,12 +905,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                     <span>{format(new Date(project.lastModified || project.createdAt || Date.now()), 'MMM d, yyyy')}</span>
                   </div>
 
-                  {/* Content Snippet */}
-                  {viewMode === 'grid' && project.pages[0] && tab === 'active' && (
-                    <div className="mt-3 pt-3 border-t text-xs font-light leading-relaxed line-clamp-3" style={{ borderColor: theme.borderFaint, color: theme.textMuted }}>
-                      {project.pages[0].content.replace(/<[^>]*>?/gm, '').trim().slice(0, 150) || t(lang, 'emptyDocument')}
-                    </div>
-                  )}
+
 
                   {/* Actions (Always visible) */}
                   <div className="absolute top-3 right-3 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>

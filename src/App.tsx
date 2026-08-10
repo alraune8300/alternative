@@ -809,12 +809,61 @@ export default function App() {
   }, [activeProjectId]);
 
   // Page Operations inside active project
+  const handleCommitDraft = useCallback(() => {
+    if (!activeProject || !activePage || !activePage.originalPageId) return;
+
+    if (!window.confirm("Are you sure you want to merge this draft's content into the original document? This will overwrite the original document's content.")) return;
+
+    // Find original page
+    const originalPage = (activeProject.pages || []).find(p => p.id === activePage.originalPageId) ||
+                         (activeProject.drafts || []).find(p => p.id === activePage.originalPageId);
+
+    if (!originalPage) {
+      alert("Original page not found.");
+      return;
+    }
+
+    setProjects(prev => prev.map(proj => {
+      if (proj.id !== activeProjectId) return proj;
+
+      const updatedPages = (proj.pages || []).map(p => {
+        if (p.id === activePage.originalPageId) {
+          return { ...p, content: activePage.content, lastModified: new Date().toISOString() };
+        }
+        return p;
+      });
+      
+      const updatedDrafts = (proj.drafts || []).map(p => {
+        if (p.id === activePage.originalPageId) {
+          return { ...p, content: activePage.content, lastModified: new Date().toISOString() };
+        }
+        return p;
+      });
+
+      const updatedProj = { ...proj, pages: updatedPages, drafts: updatedDrafts };
+      scheduleSaveProject(updatedProj);
+      return updatedProj;
+    }));
+
+    alert("Draft successfully committed to original document!");
+  }, [activeProject, activePage, activeProjectId, scheduleSaveProject]);
+
   const addPage = useCallback((isDraft = false, folderId?: string) => {
+    let title = isDraft ? 'Untitled Draft' : 'Untitled Document';
+    let content = '';
+    let originalPageId: string | undefined = undefined;
+
+    if (isDraft && activePage && !activePage.isDraft) {
+      title = `${activePage.title} (Draft)`;
+      content = activePage.content;
+      originalPageId = activePage.id;
+    }
+
     const newPage: Page = {
       id: 'page-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-      title: isDraft ? 'Untitled Draft' : 'Untitled Document',
-      content: '',
-      isDraft, folderId,
+      title,
+      content,
+      isDraft, folderId, originalPageId,
       createdAt: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     };
@@ -834,7 +883,7 @@ export default function App() {
     });
 
     setActivePageId(newPage.id);
-  }, [activeProjectId, scheduleSaveProject]);
+  }, [activeProjectId, scheduleSaveProject, activePage]);
 
   const deletePage = useCallback((pageId: string) => {
     setProjects((prev) => {
@@ -1480,14 +1529,29 @@ export default function App() {
       <main className="flex-1 h-full overflow-hidden flex flex-col transition-all duration-300 ease-in-out relative">
         {/* Document Title Header (Editable in standard mode, stylized book header in Preview mode) */}
         {!isFocusMode && !isPreviewMode && (
-          <div className="max-w-2xl mx-auto w-full px-6 md:px-8 pt-8 md:pt-10 transition-all duration-300">
+          <div className="max-w-2xl mx-auto w-full px-6 md:px-8 pt-8 md:pt-10 transition-all duration-300 flex items-center justify-between">
             <input
               value={activePage?.title || ''}
-              onChange={(e) => updateActivePage({ title: e.target.value })}
+              onChange={(e) => {
+                updateActivePage({ title: e.target.value });
+                if (activeProjectId) {
+                  handleRenameProject(activeProjectId, e.target.value);
+                }
+              }}
               placeholder={t.titlePlaceholder}
-              className="w-full bg-transparent outline-none border-none text-2xl md:text-3xl font-normal"
+              className="flex-1 bg-transparent outline-none border-none text-2xl md:text-3xl font-normal min-w-0"
               style={{ fontFamily: `'${docFont}', Georgia, serif`, color: theme.text }}
             />
+            {activePage?.isDraft && activePage?.originalPageId && (
+              <button
+                onClick={handleCommitDraft}
+                className="ml-4 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                style={{ backgroundColor: theme.accent, color: '#fff' }}
+                title="Update original document with these changes"
+              >
+                Commit to Original
+              </button>
+            )}
           </div>
         )}
 

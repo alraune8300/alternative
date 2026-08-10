@@ -53,7 +53,6 @@ function LeftPanel(props: Record<string, unknown>) {
   const activeProjectId = (props.activeProjectId || (projectsProp[0]?.id || '')) as string
   const activeProject = projectsProp.find(p => p.id === activeProjectId) || projectsProp[0]
 
-  const onSelectProject = (props.onSelectProject || (() => {})) as (id: string) => void
   const onNewProject = (props.onNewProject || (props.onAddDoc ? (() => (props.onAddDoc as () => void)()) : (() => {}))) as () => void
   const onRenameProject = (props.onRenameProject || (() => {})) as (id: string, name: string) => void
   const onDeleteProject = (props.onDeleteProject || (() => {})) as (id: string) => void
@@ -110,8 +109,6 @@ function LeftPanel(props: Record<string, unknown>) {
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null | 'root'>('root')
   const [projSearchQuery, setProjSearchQuery] = useState('')
   const [showProjSearch, setShowProjSearch] = useState(false)
-
-  const filteredProjects = projectsProp.filter(p => (p.title || 'Untitled Document').toLowerCase().includes(projSearchQuery.toLowerCase()))
 
   const handleLeftPanelImport = () => {
     const input = document.createElement('input')
@@ -538,23 +535,17 @@ function LeftPanel(props: Record<string, unknown>) {
                 />
               ) : (
                 <>
-                  <select
-                    value={activeProjectId}
-                    onChange={e => onSelectProject(e.target.value)}
+                  <div
+                    title={activeProject?.title || 'Untitled Document'}
                     style={{
-                      flex: 1, padding: '5px 6px', borderRadius: 5,
-                      border: `1px solid ${c.borderFaint}`,
-                      background: c.surface, color: c.text,
-                      fontFamily: uiFont, fontSize: '0.76rem', fontWeight: 600,
-                      outline: 'none', cursor: 'pointer', minWidth: 0,
+                      flex: 1, padding: '5px 6px',
+                      color: c.text,
+                      fontFamily: uiFont, fontSize: '0.78rem', fontWeight: 600,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}
                   >
-                    {filteredProjects.map(p => (
-                      <option key={p.id} value={p.id} style={{ background: c.isDark ? '#1f2937' : '#ffffff', color: c.text }}>
-                        {p.title || 'Untitled Document'}
-                      </option>
-                    ))}
-                  </select>
+                    {activeProject?.title || 'Untitled Document'}
+                  </div>
                   <button
                     type="button"
                     title={t(lang, 'searchProjects')}

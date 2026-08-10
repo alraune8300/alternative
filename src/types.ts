@@ -24,6 +24,7 @@ export interface Page {
   createdAt: string
   lastModified: string
   folderId?: string | null
+  originalPageId?: string | null
 }
 
 export interface Project {
