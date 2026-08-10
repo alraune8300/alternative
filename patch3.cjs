@@ -1,10 +1,10 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/LeftPanel.tsx', 'utf8');
-code = code.replace(
-`    <div
-      className="backdrop-blur-md bg-opacity-70"`,
-`    <div
-      onClick={() => setFolderMenuOpenId(null)}
-      className="backdrop-blur-md bg-opacity-70"`
-);
-fs.writeFileSync('src/LeftPanel.tsx', code);
+const content = fs.readFileSync('src/WelcomeScreen.tsx', 'utf-8');
+const target = `    setMovingProjectId(null);
+    await loadData();
+    setToastMsg(t(lang, 'projectMoved') || 'Project moved successfully');`;
+const replacement = `    setMovingProjectId(null);
+    await loadData();
+    if (onReloadProjects) onReloadProjects();
+    setToastMsg(t(lang, 'projectMoved') || 'Project moved successfully');`;
+fs.writeFileSync('src/WelcomeScreen.tsx', content.replace(target, replacement));

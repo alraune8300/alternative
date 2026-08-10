@@ -1,15 +1,7 @@
 const fs = require('fs');
-const content = fs.readFileSync('src/WelcomeScreen.tsx', 'utf-8');
-const target = `          </div>
-        </div>
-      )}
+let content = fs.readFileSync('src/WelcomeScreen.tsx', 'utf-8');
 
-      {/* Sidebar Navigation`;
-const replacement = `          </div>
-        </div>
-      )}
-
-      {/* Move Project Modal */}
+const modalCode = `      {/* Move Project Modal */}
       {movingProjectId && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setMovingProjectId(null)}>
           <div className="p-5 rounded-2xl shadow-xl flex flex-col gap-4 animate-fade-in-up w-[320px] max-w-full" style={{ backgroundColor: theme.surface, border: \`1px solid \${theme.border}\` }} onClick={(e) => e.stopPropagation()}>
@@ -50,7 +42,11 @@ const replacement = `          </div>
             </div>
           </div>
         </div>
-      )}
+      )}`;
 
-      {/* Sidebar Navigation`;
-fs.writeFileSync('src/WelcomeScreen.tsx', content.replace(target, replacement));
+content = content.replace(
+  '{/* Sidebar Navigation (Responsive: Header bar on mobile, left column on md+) */}',
+  modalCode + '\n\n      {/* Sidebar Navigation (Responsive: Header bar on mobile, left column on md+) */}'
+);
+
+fs.writeFileSync('src/WelcomeScreen.tsx', content);

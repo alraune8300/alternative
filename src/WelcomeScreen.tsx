@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, FolderOpen, Plus, Download, Upload, Grid, List, Trash2, Edit2, Check, X, RotateCcw, Home, AlertCircle, Search, ArrowUpDown, FileJson, Clock } from 'lucide-react';
+import { FileText, FolderOpen, FolderInput, Plus, Download, Upload, Grid, List, Trash2, Edit2, Check, X, RotateCcw, Home, AlertCircle, Search, ArrowUpDown, FileJson, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Project, ThemeColors, Folder } from './types';
 import { db, getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAllFoldersFromDB, saveFolderToDB } from './db';
@@ -37,6 +37,9 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
   const [timeGreeting, setTimeGreeting] = useState('');
   
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [movingProjectId, setMovingProjectId] = useState<string | null>(null);
+  const [dragProjectId, setDragProjectId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null | 'root'>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   
@@ -77,6 +80,27 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
     else if (hour < 18) setTimeGreeting('Good afternoon');
     else setTimeGreeting('Good evening');
   }, []);
+
+  const handleMoveProject = async (folderId: string | null, targetProjId?: string) => {
+    const pId = targetProjId || movingProjectId;
+    if (!pId) return;
+    const project = activeProjects.find(p => p.id === pId) || trashedProjects.find(p => p.id === pId);
+    if (!project) return;
+    
+    const updatedProj = { ...project, lastModified: new Date().toISOString() };
+    if (folderId) {
+      updatedProj.folderId = folderId;
+    } else {
+      delete updatedProj.folderId;
+    }
+
+    await saveProjectToDB(updatedProj);
+    setMovingProjectId(null);
+    setDragProjectId(null);
+    await loadData();
+    if (onReloadProjects) onReloadProjects();
+    setToastMsg(t(lang, 'projectMoved') || 'Project moved successfully');
+  };
 
   const handleSoftDeleteProject = async (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -346,6 +370,49 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
         </div>
       )}
 
+
+            {/* Move Project Modal */}
+      {movingProjectId && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setMovingProjectId(null)}>
+          <div className="p-5 rounded-2xl shadow-xl flex flex-col gap-4 animate-fade-in-up w-[320px] max-w-full" style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }} onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-sm" style={{ color: theme.text }}>{t(lang, 'moveToFolder') || 'Move to folder...'}</h3>
+            <div className="flex flex-col gap-1 max-h-[250px] overflow-y-auto">
+              <button
+                className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors text-sm"
+                style={{ color: theme.text, backgroundColor: 'transparent' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                onClick={() => handleMoveProject(null)}
+              >
+                <Home size={14} style={{ color: theme.textMuted }} />
+                <span>{t(lang, 'home') || 'Home'}</span>
+              </button>
+              {activeFolders.map(folder => (
+                <button
+                  key={folder.id}
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors text-sm truncate"
+                  style={{ color: theme.text, backgroundColor: 'transparent' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  onClick={() => handleMoveProject(folder.id)}
+                >
+                  <FolderOpen size={14} style={{ color: theme.textMuted }} />
+                  <span className="truncate">{folder.name || 'Untitled Folder'}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-end mt-1">
+              <button 
+                onClick={() => setMovingProjectId(null)}
+                className="px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                style={{ color: theme.textMuted }}
+              >
+                {t(lang, 'cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar Navigation (Responsive: Header bar on mobile, left column on md+) */}
       <div 
@@ -643,7 +710,18 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
         {/* Breadcrumbs */}
         {tab === 'active' && currentFolderId !== null && (
           <div className="w-full max-w-5xl mb-4 flex items-center gap-2 text-sm" style={{ color: theme.textMuted }}>
-            <button onClick={() => setCurrentFolderId(null)} className="hover:underline">{t(lang, 'home')}</button>
+            <button 
+              onClick={() => setCurrentFolderId(null)} 
+              className={`hover:underline px-2 py-1 -ml-2 rounded transition-colors ${dragOverFolderId === 'root' ? 'bg-black/10 dark:bg-white/10' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId('root'); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); }}
+              onDrop={(e) => {
+                e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null);
+                if (dragProjectId) handleMoveProject(null, dragProjectId);
+              }}
+            >
+              {t(lang, 'home')}
+            </button>
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={b.id}>
                 <span>/</span>
@@ -697,6 +775,12 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                       key={folder.id}
                       onClick={() => tab === 'active' && setCurrentFolderId(folder.id)}
                       className={`group relative w-full h-[140px] pt-[16px] transition-all ${tab === 'active' ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(folder.id); }}
+                      onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); }}
+                      onDrop={(e) => {
+                        e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null);
+                        if (dragProjectId) handleMoveProject(folder.id, dragProjectId);
+                      }}
                       onMouseEnter={(e) => {
                         const bgEls = e.currentTarget.querySelectorAll('.folder-bg');
                         bgEls.forEach(el => (el as HTMLElement).style.borderColor = theme.border);
@@ -714,7 +798,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                       {/* Folder Body Shape */}
                       <div 
                         className="folder-bg absolute top-[16px] left-0 right-0 bottom-0 rounded-b-2xl rounded-tr-2xl border transition-colors shadow-sm"
-                        style={{ backgroundColor: theme.surface, borderColor: theme.borderFaint, borderTopLeftRadius: 0 }}
+                        style={{ backgroundColor: theme.surface, borderColor: dragOverFolderId === folder.id ? theme.accent : theme.borderFaint, borderTopLeftRadius: 0, borderWidth: dragOverFolderId === folder.id ? 2 : 1 }}
                       />
                       {/* Mask Line */}
                       <div 
@@ -783,9 +867,15 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                     key={folder.id}
                   onClick={() => tab === 'active' && setCurrentFolderId(folder.id)}
                   className={`group relative flex flex-col justify-center px-4 py-3 rounded-md border transition-colors ${tab === 'active' ? 'cursor-pointer hover:-translate-y-0.5 shadow-sm' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(folder.id); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); }}
+                  onDrop={(e) => {
+                    e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null);
+                    if (dragProjectId) handleMoveProject(folder.id, dragProjectId);
+                  }}
                   style={{ 
                     backgroundColor: 'transparent',
-                    borderColor: theme.borderFaint
+                    borderColor: dragOverFolderId === folder.id ? theme.accent : theme.borderFaint
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = theme.surface;
@@ -854,8 +944,11 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
               {displayedProjects.map((project) => (
                 <div 
                   key={project.id}
+                  draggable={tab === 'active'}
+                  onDragStart={(e) => { e.stopPropagation(); setDragProjectId(project.id); }}
+                  onDragEnd={(e) => { e.stopPropagation(); setDragProjectId(null); setDragOverFolderId(null); }}
                   onClick={() => tab === 'active' && onOpenProject(project.id)}
-                  className={`group relative flex flex-col justify-center px-4 py-3 rounded-md border transition-colors ${tab === 'active' ? 'cursor-pointer hover:-translate-y-0.5 shadow-sm' : ''}`}
+                  className={`group relative flex flex-col justify-center px-4 py-3 rounded-md border transition-colors ${tab === 'active' ? 'cursor-pointer hover:-translate-y-0.5 shadow-sm' : ''} ${dragProjectId === project.id ? 'opacity-50' : ''}`}
                   style={{ 
                     backgroundColor: 'transparent',
                     borderColor: theme.borderFaint
@@ -911,6 +1004,9 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                   <div className="absolute top-3 right-3 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {tab === 'active' ? (
                       <>
+                        <button onClick={(e) => { e.stopPropagation(); setMovingProjectId(project.id); }} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title={t(lang, 'moveToFolder') || 'Move to Folder'}>
+                          <FolderInput size={13} />
+                        </button>
                         <button onClick={(e) => handleStartEditProject(project.id, project.title, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title={t(lang, 'rename')}>
                           <Edit2 size={13} />
                         </button>
