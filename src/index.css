@@ -419,6 +419,12 @@ ol.kgv-editor {
 @media print {
   .ProseMirror > * {
     margin-top: var(--print-margin-top) !important;
+    background-color: transparent !important;
+  }
+  .paper-page {
+    background-image: none !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 }
 

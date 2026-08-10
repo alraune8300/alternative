@@ -5,9 +5,12 @@ import { Project, ThemeColors, Folder } from './types';
 import { db, getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAllFoldersFromDB, saveFolderToDB } from './db';
 import { exportToJsonBackup, importJsonBackupFile } from './fileHandlers';
 import { Lang, t } from './i18n';
+import { PRESETS } from './theme';
 
 interface WelcomeScreenProps {
   theme: ThemeColors;
+  themeMode?: string;
+  onSelectTheme?: (themeId: string) => void;
   uiFont: string;
   lang?: Lang;
   onOpenProject: (projectId: string, pageId?: string) => void;
@@ -21,7 +24,7 @@ interface WelcomeScreenProps {
 
 type SortOption = 'updated' | 'newest' | 'oldest' | 'nameAZ' | 'nameZA' | 'pages';
 
-function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, onEmptyAllTrash, onReloadProjects, refreshTrigger }: WelcomeScreenProps) {
+function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, onEmptyAllTrash, onReloadProjects, refreshTrigger }: WelcomeScreenProps) {
     
   const [projects, setProjects] = useState<Project[]>([]);
   const activeProjects = projects.filter(p => !p.isDeleted);
@@ -381,6 +384,51 @@ function WelcomeScreen({ theme, uiFont, lang = 'vi', onOpenProject, onImport, on
               <span className="font-medium text-xs md:text-sm">{t(lang, 'trash')}</span>
             </button>
           </nav>
+
+          {/* Theme Selector UI */}
+          {onSelectTheme && (
+            <div className="w-full pt-4 mt-6 border-t hidden md:block" style={{ borderColor: theme.borderFaint }}>
+              <span className="text-[10px] font-semibold uppercase tracking-wider block mb-3 opacity-60" style={{ color: theme.textFaint }}>
+                {t(lang, 'themePresets')}
+              </span>
+              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1 kgv-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
+                {PRESETS.map(preset => {
+                  const isActive = themeMode === preset.name;
+                  return (
+                    <button
+                      key={preset.name}
+                      onClick={() => onSelectTheme(preset.name)}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                      style={{
+                        backgroundColor: isActive ? theme.accentLight : 'transparent',
+                        borderColor: isActive ? theme.border : 'transparent',
+                        color: isActive ? theme.text : theme.textMuted
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = theme.surface;
+                          e.currentTarget.style.borderColor = theme.borderFaint;
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.borderColor = 'transparent';
+                        }
+                      }}
+                    >
+                      <div className="flex gap-1">
+                        {[preset.bg, preset.accent, preset.surface].map((clr, i) => (
+                          <div key={i} className="w-2.5 h-2.5 rounded-full border border-black/10" style={{ backgroundColor: clr }} />
+                        ))}
+                      </div>
+                      <span>{preset.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* GitHub Cloud Save UI in bottom left area */}

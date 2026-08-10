@@ -18,6 +18,13 @@
   outline: none;
 }
 
+/* Prevent page break gaps from bleeding into text by giving blocks an opaque background */
+.kgv-editor > * {
+  background-color: var(--page-surface, transparent);
+  position: relative;
+  z-index: 1;
+}
+
 .kgv-editor h1 {
   font-size: 2em;
   font-weight: 700;

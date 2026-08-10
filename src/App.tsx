@@ -448,6 +448,26 @@ export default function App() {
     document.documentElement.style.setProperty('--bg-color', theme.bg);
   }, [theme.bg, theme.text]);
 
+  // Sync print page format to the browser print engine
+  useEffect(() => {
+    let style = document.getElementById('kgv-print-page-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'kgv-print-page-style';
+      document.head.appendChild(style);
+    }
+    const sizeMap: Record<string, string> = {
+      'A4': 'A4',
+      'Letter': 'letter',
+      'Legal': 'legal',
+      'A5': 'A5',
+      'Tabloid': 'tabloid',
+      'pageless': 'auto'
+    };
+    const paper = sizeMap[pageFormat.paperSize] || 'auto';
+    const orient = pageFormat.orientation === 'landscape' ? 'landscape' : 'portrait';
+    style.innerHTML = `@media print { @page { size: ${paper} ${orient}; margin: 0; } }`;
+  }, [pageFormat.paperSize, pageFormat.orientation]);
 
   // Persist App Settings / Session state to IndexedDB (appSettings)
   useEffect(() => {
@@ -1335,6 +1355,8 @@ export default function App() {
       <>
         <WelcomeScreen
           theme={theme}
+          themeMode={themeMode}
+          onSelectTheme={handleSelectTheme}
           uiFont={uiFont}
           lang={lang}
           onEmptyAllTrash={emptyAllTrash}
@@ -1710,6 +1732,7 @@ export default function App() {
                   <div
                     className="paper-page relative rounded-lg shadow-md transition-all duration-200 border"
                     style={{
+                      '--page-surface': theme.surface || '#ffffff',
                       width: `${paperWidth}px`,
                       minHeight: `${paperHeight}px`,
                       backgroundColor: theme.surface || '#ffffff',
@@ -1720,8 +1743,8 @@ export default function App() {
                       paddingBottom: `${marginPx}px`,
                       boxSizing: 'border-box',
                       position: 'relative',
-                      backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent calc(${paperHeight}px - 2px), #e5e7eb calc(${paperHeight}px - 2px), #e5e7eb ${paperHeight}px)`
-                    }}
+                      backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent calc(${paperHeight}px - 32px), ${theme.bg} calc(${paperHeight}px - 32px), ${theme.bg} ${paperHeight}px)`,
+                    } as React.CSSProperties}
                   >
                     {/* Page Header (Tên tài liệu) */}
                     <div
