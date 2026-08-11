@@ -11,6 +11,7 @@ import {
 import type { Editor } from '@tiptap/react';
 import type { ThemeColors } from './types';
 import type { Dict } from './i18n';
+import { compressImage } from './imageUtils';
 
 type Props = {
   editor: Editor;
@@ -121,21 +122,19 @@ function Toolbar({
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement)?.files?.[0];
       if (!file) return;
       if (file.size > 25 * 1024 * 1024) {
         alert(t.imageTooLarge || 'Image size exceeds 25MB limit.');
         return;
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result;
-        if (typeof base64 === 'string') {
-          editor.chain().focus().setImage({ src: base64 }).run();
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedBase64 = await compressImage(file);
+        editor.chain().focus().setImage({ src: compressedBase64 }).run();
+      } catch (err) {
+        console.error('Failed to compress image:', err);
+      }
     };
     input.click();
   };

@@ -264,6 +264,12 @@ import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ResizableImageComponent } from './ResizableImageComponent';
 
 export const ResizableImage = Image.extend({
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      allowBase64: true,
+    }
+  },
   addAttributes() {
     return {
       ...this.parent?.(),
