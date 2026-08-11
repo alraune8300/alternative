@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Eraser, Plus, Minus, ZoomIn,
   PanelLeft, Settings, Maximize2, Minimize2, BookOpen,
-  Divide, Cloud, Target
+  Divide, Cloud, Target, Image as ImageIcon
 } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import type { ThemeColors } from './types';
@@ -116,6 +116,30 @@ function Toolbar({
   );
 
   const Divider = () => <div className="w-px h-5 mx-1 shrink-0" style={{ backgroundColor: theme.border }} />;
+
+  const handleInsertImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement)?.files?.[0];
+      if (!file) return;
+      if (file.size > 25 * 1024 * 1024) {
+        alert(t.imageTooLarge || 'Image size exceeds 25MB limit.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result;
+        if (typeof base64 === 'string') {
+          editor.chain().focus().setImage({ src: base64 }).run();
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
 
   return (
     <div
@@ -265,6 +289,8 @@ function Toolbar({
 
       <Divider />
 
+            <ToolBtn onClick={handleInsertImage} icon={<ImageIcon size={15} />} label={t.insertImage || "Insert Image"} />
+      <Divider />
       <ToolBtn onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} icon={<Eraser size={15} />} label={t.clearFormat} />
       <ToolBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={<Divide size={15} />} label="Horizontal Rule" />
 
