@@ -142,7 +142,7 @@ function Toolbar({
 
   return (
     <div
-      className="sticky top-0 z-10 flex items-center flex-nowrap md:flex-wrap overflow-x-auto md:overflow-x-visible scrollbar-none gap-1 px-3 py-2 select-none"
+      className="sticky top-0 z-10 flex items-center flex-nowrap md:flex-wrap overflow-x-auto md:overflow-x-visible scrollbar-none gap-1 px-4 md:pl-6 py-2 select-none"
       style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, fontFamily: `'${uiFont}', sans-serif` }}
     >
       {onToggleSidebar && (

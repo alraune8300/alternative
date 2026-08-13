@@ -456,7 +456,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
             <button
               onClick={onGoHome}
               title="Return to Welcome Screen"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textMuted, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textMuted, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18 }}
             >
               <Home size={18} />
             </button>

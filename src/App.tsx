@@ -1511,7 +1511,7 @@ export default function App() {
       {/* Left Panel with fluid width, smooth slide transitions & adaptive graphic scaling */}
       <div
         className={`
-          fixed md:relative top-0 left-0 h-full z-40 md:z-auto flex-shrink-0
+          fixed md:relative top-0 left-0 h-full z-40 flex-shrink-0
           transition-all duration-300 ease-in-out transform shadow-2xl md:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
           ${sidebarOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[260px]' : '-translate-x-full opacity-0 w-0 pointer-events-none'}
         `}
@@ -1554,7 +1554,7 @@ export default function App() {
       </div>
 
       {/* Main Workspace Area with fluid flex expansion & smooth resize transition */}
-      <main className="flex-1 h-full overflow-hidden flex flex-col transition-all duration-300 ease-in-out relative">
+      <main className="flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 ease-in-out relative">
         {/* Document Title Header (Editable in standard mode, stylized book header in Preview mode) */}
         {!isFocusMode && !isPreviewMode && (
           <div className="max-w-2xl mx-auto w-full px-6 md:px-8 pt-8 md:pt-10 transition-all duration-300 flex items-center justify-between">
@@ -1585,7 +1585,7 @@ export default function App() {
 
         {!isFocusMode && !isPreviewMode && editorInstance && showRibbon && (
           <div 
-            className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between pl-4 pr-4 md:pr-[72px] transition-all duration-200"
+            className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between pl-6 pr-4 md:pr-[72px] transition-all duration-200"
             style={{
               backgroundColor: theme.surface,
               ...mobileRibbonStyle
@@ -1926,7 +1926,7 @@ export default function App() {
       )}
       <div
         className={`
-          fixed md:relative top-0 right-0 h-full z-40 md:z-auto flex-shrink-0
+          fixed md:relative top-0 right-0 h-full z-40 flex-shrink-0
           transition-all duration-300 ease-in-out transform shadow-2xl md:shadow-none kgv-adaptive-panel kgv-hardware-accelerated
           ${rightOpen && !isFocusMode && !isPreviewMode ? 'translate-x-0 opacity-100 w-[300px]' : 'translate-x-full opacity-0 w-0 pointer-events-none'}
         `}
