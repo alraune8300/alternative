@@ -561,6 +561,18 @@ const renderFolder = (folder: Folder, depth = 0) => {
         
         {/* Pages Section */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileText size={16} color={c.textMuted} />
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: c.text, fontFamily: uiFont, letterSpacing: '0.05em' }}>Pages</span>
+            </div>
+            <button 
+              onClick={() => { setActiveTab('pages'); onNewPage(false); }} 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint }}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
           {renderTabContent(false)}
         </div>
 

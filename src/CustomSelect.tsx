@@ -82,7 +82,7 @@ export function CustomSelect({
             <React.Fragment key={opt.value}>
               <button
                 onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                className="w-full text-left px-4 py-3 text-[13px] md:text-sm transition-colors truncate"
+                className="w-full text-left px-4 py-3 text-[13px] md:text-sm transition-colors truncate flex-shrink-0"
                 style={{ 
                   color: theme.text,
                   backgroundColor: value === opt.value ? theme.panel : 'transparent',
@@ -94,21 +94,21 @@ export function CustomSelect({
                 {opt.label}
               </button>
               {i < options.length - 1 && (
-                <div className="h-[1px] w-full my-0" style={{ backgroundColor: theme.borderFaint }} />
+                <div className="h-[1px] w-full my-0 flex-shrink-0" style={{ backgroundColor: theme.borderFaint }} />
               )}
             </React.Fragment>
           ))}
 
           {groups && groups.map((group, groupIdx) => (
-            <div key={group.label}>
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider mt-1" style={{ color: theme.textFaint }}>
+            <div key={group.label} className="flex-shrink-0">
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider mt-1 flex-shrink-0" style={{ color: theme.textFaint }}>
                 {group.label}
               </div>
               {group.options.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                  className="w-full text-left px-3 py-2 text-[13px] md:text-sm transition-colors truncate"
+                  className="w-full text-left px-3 py-2 text-[13px] md:text-sm transition-colors truncate flex-shrink-0"
                   style={{ 
                     color: theme.text,
                     backgroundColor: value === opt.value ? theme.panel : 'transparent',
@@ -121,7 +121,7 @@ export function CustomSelect({
                 </button>
               ))}
               {groupIdx < groups.length - 1 && (
-                <div className="h-[1px] w-full my-1" style={{ backgroundColor: theme.borderFaint }} />
+                <div className="h-[1px] w-full my-1 flex-shrink-0" style={{ backgroundColor: theme.borderFaint }} />
               )}
             </div>
           ))}
