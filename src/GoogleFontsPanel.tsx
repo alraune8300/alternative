@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { ThemeColors } from './types';
 import type { Theme } from './theme';
 import { t, Lang } from './i18n';
+import { CustomSelect } from './CustomSelect';
 
 const FONT_CATEGORIES = [
   {
@@ -181,7 +182,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
           style={{
             flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none',
             background: activeTab === 'catalog' ? c.accent : 'transparent',
-            color: activeTab === 'catalog' ? '#ffffff' : c.textMuted,
+            color: activeTab === 'catalog' ? (c.isDark ? c.bg : '#ffffff') : c.textMuted,
             fontFamily: uiFont, fontSize: '0.75rem', fontWeight: 600,
             cursor: 'pointer', transition: 'all 0.15s',
           }}
@@ -194,7 +195,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
           style={{
             flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none',
             background: activeTab === 'roles' ? c.accent : 'transparent',
-            color: activeTab === 'roles' ? '#ffffff' : c.textMuted,
+            color: activeTab === 'roles' ? (c.isDark ? c.bg : '#ffffff') : c.textMuted,
             fontFamily: uiFont, fontSize: '0.75rem', fontWeight: 600,
             cursor: 'pointer', transition: 'all 0.15s',
           }}
@@ -220,23 +221,29 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: c.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
                 <span style={{ fontSize: '0.75rem', fontFamily: `'${current}', serif`, color: c.accent }}>{current}</span>
               </div>
-              <select
+              <CustomSelect
                 value={current}
-                onChange={(e) => handleAssignRole(role, e.target.value)}
-                style={{
+                onChange={(val) => handleAssignRole(role, val)}
+                theme={c}
+                groups={FONT_CATEGORIES.map(cat => ({
+                  label: cat.category,
+                  options: cat.fonts.map(fontName => ({ value: fontName, label: fontName, fontFamily: `'${fontName}', serif` }))
+                }))}
+                buttonStyle={{
                   width: '100%', padding: '6px 8px', borderRadius: 6,
                   border: `1px solid ${c.border}`, background: c.surface,
-                  color: c.text, fontFamily: uiFont, fontSize: '0.8rem', cursor: 'pointer', outline: 'none'
+                  color: c.text, fontFamily: uiFont, fontSize: '0.8rem', cursor: 'pointer', outline: 'none',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}
-              >
-                {FONT_CATEGORIES.map(cat => (
-                  <optgroup key={cat.category} label={`[${cat.category}]`}>
-                    {cat.fonts.map(fontName => (
-                      <option key={fontName} value={fontName}>{fontName}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+                renderButtonContent={(opt) => (
+                  <>
+                    <span>{opt?.label || current}</span>
+                    <svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' style={{ fill: c.textMuted }}>
+                      <path d='M0 0l5 6 5-6z'/>
+                    </svg>
+                  </>
+                )}
+              />
             </div>
           ))}
         </div>
@@ -345,7 +352,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
                             fontSize: '0.68rem', fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = c.accent; e.currentTarget.style.color = '#ffffff'; }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = c.accent; e.currentTarget.style.color = c.isDark ? c.bg : '#ffffff'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = c.accent; }}
                         >
                           ✦ {t(lang, 'selectFont')}

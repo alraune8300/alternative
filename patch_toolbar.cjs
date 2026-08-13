@@ -1,49 +1,35 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/Toolbar.tsx', 'utf8');
 
-// add Image as ImageIcon
-code = code.replace('Divide, Cloud, Target', 'Divide, Cloud, Target, Image as ImageIcon');
+// Add onToggleHistory in Props
+if (!code.includes('onToggleHistory?: () => void;')) {
+  code = code.replace(
+    "onToggleSettings?: () => void;",
+    "onToggleSettings?: () => void;\n  onToggleHistory?: () => void;"
+  );
+}
 
-// add insertImage function inside Toolbar component
-const insertImageFn = `
-  const handleInsertImage = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      if (file.size > 25 * 1024 * 1024) {
-        alert(t.imageTooLarge || 'Image size exceeds 25MB limit.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result;
-        if (typeof base64 === 'string') {
-          editor.chain().focus().setImage({ src: base64 }).run();
-        }
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
-  };
-`;
+// Add onToggleHistory in destructured props
+if (!code.includes('onToggleHistory,')) {
+  code = code.replace(
+    "rightOpen, onToggleSettings,",
+    "rightOpen, onToggleSettings, onToggleHistory,"
+  );
+}
 
-// Insert the function before the return statement
-code = code.replace(
-  '  return (\\n    <div',
-  insertImageFn + '\\n  return (\\n    <div'
-);
-
-// Add the button
-const buttonHtml = `      <ToolBtn onClick={handleInsertImage} icon={<ImageIcon size={15} />} label={t.insertImage || "Insert Image"} />
-      <Divider />
-      <ToolBtn onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} icon={<Eraser size={15} />} label={t.clearFormat} />`;
-
-code = code.replace(
-  '<ToolBtn onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} icon={<Eraser size={15} />} label={t.clearFormat} />',
-  buttonHtml
-);
+// Add History button in JSX
+if (!code.includes('onClick={onToggleHistory}')) {
+  const historyBtn = `            <ToolBtn
+              onClick={onToggleHistory}
+              icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+              label={t.versionHistory || 'History'}
+            />
+            <Divider />`;
+  
+  code = code.replace(
+    "{onToggleSettings && (",
+    historyBtn + "\n        {onToggleSettings && ("
+  );
+}
 
 fs.writeFileSync('src/Toolbar.tsx', code);

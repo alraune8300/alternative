@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import type { Project, PageFormat, Folder } from './types';
+import type { Project, PageFormat, Folder, VersionSnapshot } from './types';
 
 export interface AppSettings {
   id: string; // 'current'
@@ -23,19 +23,25 @@ export class WritingAppDexieDB extends Dexie {
   projects!: Table<Project, string>;
   appSettings!: Table<AppSettings, string>;
   folders!: Table<Folder, string>;
+  versions!: Table<VersionSnapshot, string>;
 
   constructor() {
     super('KgvWritingAppDexieDB');
     
-    this.version(1).stores({
+        this.version(1).stores({
       projects: 'id, title, lastModified',
       appSettings: 'id',
     });
-
     this.version(2).stores({
       projects: 'id, title, lastModified, folderId',
       appSettings: 'id',
       folders: 'id, name, isDeleted'
+    });
+    this.version(3).stores({
+      projects: 'id, title, lastModified, folderId',
+      appSettings: 'id',
+      folders: 'id, name, isDeleted',
+      versions: 'id, pageId, timestamp'
     });
   }
 }
@@ -113,5 +119,31 @@ export async function saveAppSettings(settings: Partial<AppSettings>): Promise<v
     });
   } catch (err) {
     console.warn('Error saving appSettings to Dexie:', err);
+  }
+}
+
+
+export async function getPageVersionsFromDB(pageId: string): Promise<VersionSnapshot[]> {
+  try {
+    return await db.versions.where('pageId').equals(pageId).sortBy('timestamp');
+  } catch (err) {
+    console.warn('Error reading versions from Dexie:', err);
+    return [];
+  }
+}
+
+export async function savePageVersionToDB(version: VersionSnapshot): Promise<void> {
+  try {
+    await db.versions.put(version);
+  } catch (err) {
+    console.warn('Error saving version to Dexie:', err);
+  }
+}
+
+export async function deletePageVersionFromDB(id: string): Promise<void> {
+  try {
+    await db.versions.delete(id);
+  } catch (err) {
+    console.warn('Error deleting version from Dexie:', err);
   }
 }

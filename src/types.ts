@@ -89,7 +89,7 @@ export interface Footnote {
 
 export type SyncStatus = 'saved' | 'saving' | 'unsaved' | 'error'
 
-export type Panel = 'none' | 'format' | 'export' | 'preview' | 'timer' | 'colors' | 'fonts' | 'importexport' | 'settings'
+export type Panel = 'none' | 'format' | 'export' | 'preview' | 'timer' | 'colors' | 'fonts' | 'importexport' | 'settings' | 'history'
 
 export type PaperSize = 'A4' | 'Letter' | 'Legal' | 'A5' | 'Tabloid' | 'pageless'
 export type PageOrientation = 'portrait' | 'landscape'
@@ -122,4 +122,13 @@ export interface FormatState {
   letterSpacing: number
   wordSpacing: number
   firstLineIndent: boolean
+}
+
+export interface VersionSnapshot {
+  id: string;
+  pageId: string;
+  timestamp: string;
+  content: string;
+  title?: string;
+  label?: string;
 }

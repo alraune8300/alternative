@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Page, Folder, SyncStatus, Project } from './types'
 import { Lang, t as i18nT } from './i18n'
-import { Search, Edit2, FileText, Trash2, ChevronDown, RotateCcw, X, MoreHorizontal, Upload, Plus } from 'lucide-react'
+import { Home, Folder as FolderIcon, Edit2, FileText, Trash2, ChevronDown, RotateCcw, X, MoreHorizontal, Upload, Plus } from 'lucide-react'
 import { importJsonBackupFile } from './fileHandlers'
 
 function timeSince(date: Date): string {
@@ -106,7 +106,7 @@ function LeftPanel(props: Record<string, unknown>) {
   const [folderMenuOpenId, setFolderMenuOpenId] = useState<string | null>(null)
   
   const [dragPageId, setDragPageId] = useState<string | null>(null)
-  const [dragOverFolderId, setDragOverFolderId] = useState<string | null | 'root'>('root')
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null | 'root'>(null)
   const [projSearchQuery, setProjSearchQuery] = useState('')
   const [showProjSearch, setShowProjSearch] = useState(false)
 
@@ -166,76 +166,86 @@ function LeftPanel(props: Record<string, unknown>) {
     setRenamingFolderId(null)
   }
 
-  const renderPage = (page: Page, indent = 0) => (
-    <div onClick={() => setFolderMenuOpenId(null)}
-      key={page.id}
-      className="group relative"
-      draggable
-      onDragStart={() => setDragPageId(page.id)}
-      onDragEnd={() => { setDragPageId(null); setDragOverFolderId(null) }}
-      style={{
-        margin: '1px 6px',
-        marginLeft: 6 + indent * 14,
-        borderRadius: 6,
-        background: activePageId === page.id
-          ? c.accentLight
-          : 'transparent',
-        transition: 'background 0.12s',
-        opacity: dragPageId === page.id ? 0.4 : 1,
-      }}
-    >
-      {renamingId === page.id ? (
-        <input
-          autoFocus
-          value={renameVal}
-          onChange={e => setRenameVal(e.target.value)}
-          onBlur={() => commitRename(page.id)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') commitRename(page.id)
-            if (e.key === 'Escape') setRenamingId(null)
-          }}
-          style={{
-            width: '100%', padding: '6px 10px',
-            fontFamily: uiFont, fontSize: '0.78rem',
-            background: 'transparent', border: 'none',
-            outline: `1.5px solid ${c.accent}`, borderRadius: 5, color: c.text,
-          }}
-        />
-      ) : (
-        <div
-          onClick={() => onSelectPage(page.id)}
-          onDoubleClick={() => { setRenamingId(page.id); setRenameVal(page.title) }}
-          style={{
-            padding: '8px 44px 8px 12px',
-            fontFamily: uiFont, fontSize: '0.8rem',
-            color: activePageId === page.id ? c.accent : c.text,
-            fontWeight: activePageId === page.id ? 600 : 400,
-            cursor: 'pointer', lineHeight: 1.4,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            borderLeft: activePageId === page.id ? `2px solid ${c.accent}` : '2px solid transparent',
-            transition: 'color 0.12s',
-          }}
-        >
-          {page.title}
+    const renderPage = (page: Page, indent = 0) => {
+    const isHoveredOrActive = activePageId === page.id;
+    return (
+      <div 
+        key={page.id}
+        className="group relative"
+        draggable
+        onDragStart={() => setDragPageId(page.id)}
+        onDragEnd={() => { setDragPageId(null); setDragOverFolderId(null) }}
+        style={{
+          margin: '4px 10px',
+          marginLeft: 10 + indent * 14,
+          borderRadius: 12,
+          border: `1px solid ${isHoveredOrActive ? c.accent : c.border}`,
+          background: isHoveredOrActive ? c.accentLight : c.surface,
+          padding: '12px 14px',
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          opacity: dragPageId === page.id ? 0.4 : 1,
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}
+        onClick={() => { setFolderMenuOpenId(null); onSelectPage(page.id) }}
+        onDoubleClick={() => { setFolderMenuOpenId(null); setRenamingId(page.id); setRenameVal(page.title) }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          {renamingId === page.id ? (
+            <input
+              autoFocus
+              value={renameVal}
+              onChange={e => setRenameVal(e.target.value)}
+              onBlur={() => commitRename(page.id)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitRename(page.id)
+                if (e.key === 'Escape') setRenamingId(null)
+              }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                flex: 1, padding: '2px 4px',
+                fontFamily: uiFont, fontSize: '0.85rem',
+                background: 'transparent', border: 'none',
+                outline: `1.5px solid ${c.accent}`, borderRadius: 4, color: c.text,
+              }}
+            />
+          ) : (
+            <span style={{
+              fontFamily: uiFont, fontSize: '0.85rem', fontWeight: 500,
+              color: c.text, lineHeight: 1.3,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1
+            }}>
+              {page.title}
+            </span>
+          )}
+          
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" style={{ background: isHoveredOrActive ? c.accentLight : c.surface, borderRadius: 4 }}>
+            <button
+              onClick={e => { e.stopPropagation(); onDeletePage(page.id) }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: c.textFaint }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
+              onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
+              title="Delete"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
-      )}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-surface/90 backdrop-blur-xs px-1.5 py-1 rounded shadow-xs">
         
-
-        <button
-          onClick={e => { e.stopPropagation(); onDeletePage(page.id) }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: c.textFaint }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
-          onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-          title="Delete"
-        >
-          <Trash2 size={13} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: c.textFaint }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span style={{ fontSize: '0.65rem', fontFamily: uiFont }}>{timeSince(new Date(page.updatedAt || Date.now()))}</span>
+          </div>
+          <div style={{ width: 16, height: 16, borderRadius: '50%', background: c.accent, opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.5rem', fontWeight: 'bold' }}>
+            A
+          </div>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  const renderFolder = (folder: Folder, depth = 0) => {
+const renderFolder = (folder: Folder, depth = 0) => {
     const isCollapsed = collapsedFolders.has(folder.id)
     const childFolders = activeFolders.filter(f => f.parentId === folder.id)
     const folderPages = (activeTab === 'drafts' ? drafts : nonDrafts).filter(p => p.folderId === folder.id)
@@ -417,7 +427,7 @@ function LeftPanel(props: Record<string, unknown>) {
             }}
             style={{
               background: dragOverFolderId === 'root' ? c.accentLight : 'transparent',
-              border: dragOverFolderId === 'root' ? `1px dashed ${c.accentMid}` : '1px solid transparent',
+              border: dragOverFolderId === 'root' ? `1px dashed ${c.accentMid}` : 'none',
               borderRadius: 6, margin: '2px 4px', transition: 'all 0.1s',
             }}
           >
@@ -432,349 +442,210 @@ function LeftPanel(props: Record<string, unknown>) {
     <div
       onClick={() => setFolderMenuOpenId(null)}
       style={{
-        width: 230, flexShrink: 0, display: 'flex', flexDirection: 'column',
+        width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column',
         height: '100%', maxHeight: '100%',
-        background: c.isDark ? '#121212' : c.bg,
+        background: c.panel,
         borderRight: `1px solid ${c.borderFaint}`,
         overflow: 'hidden',
       }}
     >
-      {/* Project Switcher Header */}
-      <div style={{
-        padding: '10px 10px 8px',
-        borderBottom: `1px solid ${c.borderFaint}`,
-        background: c.isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.02)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+      {/* Header */}
+      <div style={{ padding: '16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, borderBottom: `1px solid ${c.borderFaint}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, height: 24 }}>
           {onGoHome && (
             <button
-              type="button"
               onClick={onGoHome}
               title="Return to Welcome Screen"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer', color: c.textMuted,
-                padding: '2px', display: 'flex', alignItems: 'center'
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
-              onMouseLeave={e => (e.currentTarget.style.color = c.textMuted)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textMuted, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
+              <Home size={18} />
             </button>
           )}
-          <span style={{
-            fontFamily: uiFont, fontSize: '10px', fontWeight: 500,
-            textTransform: 'uppercase', letterSpacing: '0.1em', color: c.textFaint, flex: 1
-          }}>
-            {t(lang, 'projects')}
-          </span>
+          <div 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, overflow: 'hidden' }}
+            onClick={() => setShowProjSearch(v => !v)}
+            title="Switch Project"
+          >
+            <div style={{ position: 'relative', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FolderIcon size={18} style={{ color: c.accent, fill: c.accent, opacity: 0.2, position: 'absolute' }} />
+              <FolderIcon size={18} style={{ color: c.accent, position: 'absolute' }} />
+            </div>
+            <span style={{ fontSize: '1.05rem', fontWeight: 600, color: c.text, fontFamily: uiFont, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {activeProject?.title || 'English'}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {Boolean(props.onCloseSidebar || props.onClose) && (
+            <button
+              onClick={onCloseSidebar}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint }}
+              title="Close Sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            </button>
+          )}
+        </div>
+      </div>
+      {/* Project Switcher Dropdown (Conditional) */}
+      {showProjSearch && (
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: `1px solid ${c.borderFaint}`, background: c.surface }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <button
-              type="button"
-              onClick={onNewProject}
-              title={t(lang, 'newDoc')}
-              className="p-1.5 rounded-md bg-transparent border border-neutral-200/20 dark:border-neutral-800/40 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/10 transition-all cursor-pointer flex items-center justify-center"
-              style={{ fontFamily: uiFont }}
-            >
-              <Plus size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={handleLeftPanelImport}
-              title="Import file (.txt, .md, .docx, .json)"
-              className="p-1.5 rounded-md bg-transparent border border-neutral-200/20 dark:border-neutral-800/40 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-500/10 transition-all cursor-pointer flex items-center justify-center"
-              style={{ fontFamily: uiFont }}
-            >
-              <Upload size={14} />
-            </button>
-            {Boolean(props.onCloseSidebar || props.onClose) && (
-              <button
-                type="button"
-                onClick={onCloseSidebar}
-                title={t(lang, 'collapse') || 'Collapse'}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 24, height: 24, borderRadius: 5,
-                  border: `1px solid ${c.borderFaint}`,
-                  background: 'transparent', color: c.textMuted,
-                  cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1,
-                  transition: 'all 0.15s',
+            {renamingProjId === activeProjectId ? (
+              <input
+                autoFocus
+                value={projRenameVal}
+                onChange={e => setProjRenameVal(e.target.value)}
+                onBlur={() => { if (projRenameVal.trim()) onRenameProject(activeProjectId, projRenameVal.trim()); setRenamingProjId(null) }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { if (projRenameVal.trim()) onRenameProject(activeProjectId, projRenameVal.trim()); setRenamingProjId(null) }
+                  if (e.key === 'Escape') setRenamingProjId(null)
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = c.text; e.currentTarget.style.background = c.accentLight }}
-                onMouseLeave={e => { e.currentTarget.style.color = c.textMuted; e.currentTarget.style.background = 'transparent' }}
-              >
-                ×
+                style={{
+                  width: '100%', padding: '4px 8px', fontFamily: uiFont, fontSize: '0.85rem',
+                  background: 'transparent', border: `1px solid ${c.accent}`, borderRadius: 5, color: c.text,
+                }}
+              />
+            ) : (
+              <>
+                <div style={{ flex: 1 }} />
+                <button
+                  type="button"
+                  title="Rename Project"
+                  onClick={() => { setRenamingProjId(activeProjectId); setProjRenameVal(activeProject?.title || '') }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, padding: '3px' }}
+                >
+                  <Edit2 size={13} />
+                </button>
+                {projectsProp.length > 1 && (
+                  <button
+                    type="button"
+                    title="Delete Project"
+                    onClick={() => { if (window.confirm('Delete project?')) onDeleteProject(activeProjectId) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, padding: '3px' }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
+            <input
+              placeholder={t(lang, "searchProjects")}
+              value={projSearchQuery}
+              onChange={e => setProjSearchQuery(e.target.value)}
+              style={{
+                width: '100%', padding: '6px 8px', fontFamily: uiFont, fontSize: '0.8rem',
+                background: c.bg, border: `1px solid ${c.borderFaint}`, borderRadius: 6,
+                color: c.text, outline: 'none'
+              }}
+            />
+            {projSearchQuery && (
+              <button onClick={() => setProjSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, padding: '2px' }} title="Clear search">
+                <X size={12} />
               </button>
             )}
           </div>
-        </div>
-
-        {projectsProp.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
-              {renamingProjId === activeProjectId ? (
-                <input
-                  autoFocus
-                  value={projRenameVal}
-                  onChange={e => setProjRenameVal(e.target.value)}
-                  onBlur={() => { if (projRenameVal.trim()) onRenameProject(activeProjectId, projRenameVal.trim()); setRenamingProjId(null) }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') { if (projRenameVal.trim()) onRenameProject(activeProjectId, projRenameVal.trim()); setRenamingProjId(null) }
-                    if (e.key === 'Escape') setRenamingProjId(null)
-                  }}
-                  style={{
-                    width: '100%', padding: '4px 8px', fontFamily: uiFont, fontSize: '0.76rem',
-                    background: 'transparent', border: `1px solid ${c.accent}`, borderRadius: 5, color: c.text,
-                  }}
-                />
-              ) : (
-                <>
-                  <div
-                    title={activeProject?.title || 'Untitled Document'}
-                    style={{
-                      flex: 1, padding: '5px 6px',
-                      color: c.text,
-                      fontFamily: uiFont, fontSize: '0.78rem', fontWeight: 600,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {activeProject?.title || 'Untitled Document'}
-                  </div>
-                  <button
-                    type="button"
-                    title={t(lang, 'searchProjects')}
-                    onClick={() => setShowProjSearch(v => !v)}
-                    style={{
-                      background: 'none', border: `1px solid ${showProjSearch ? c.accent : c.borderFaint}`,
-                      borderRadius: 4, cursor: 'pointer',
-                      color: showProjSearch ? c.accent : c.textFaint, padding: '4px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                  >
-                    <Search size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    title={t(lang, 'renameProject')}
-                    onClick={() => { setRenamingProjId(activeProjectId); setProjRenameVal(activeProject?.title || '') }}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: c.textFaint, display: 'flex', alignItems: 'center', padding: '3px',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
-                    onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-                  >
-                    <Edit2 size={13} />
-                  </button>
-                  {projectsProp.length > 1 && (
-                    <button
-                      type="button"
-                      title={t(lang, 'deleteProject')}
-                      onClick={() => {
-                        if (window.confirm(t(lang, 'deleteProjectConfirm'))) {
-                          onDeleteProject(activeProjectId)
-                        }
-                      }}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: c.textFaint, display: 'flex', alignItems: 'center', padding: '3px',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
-                      onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-            {showProjSearch && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', marginTop: 2 }}>
-                <input
-                  autoFocus
-                  placeholder={t(lang, 'searchProjects')}
-                  value={projSearchQuery}
-                  onChange={e => setProjSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%', padding: '4px 8px', fontFamily: uiFont, fontSize: '0.72rem',
-                    background: c.surface, border: `1px solid ${c.borderFaint}`, borderRadius: 4,
-                    color: c.text, outline: 'none'
-                  }}
-                />
-                {projSearchQuery && (
-                  <button
-                    onClick={() => setProjSearchQuery('')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, display: 'flex', alignItems: 'center', padding: '2px' }}
-                    title="Clear search"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button onClick={onNewProject} style={{ flex: 1, padding: '6px', background: c.accentLight, color: c.accent, borderRadius: 6, fontSize: '0.75rem', fontWeight: 500, border: 'none', cursor: 'pointer' }}>+ New Project</button>
+            <button onClick={handleLeftPanelImport} style={{ flex: 1, padding: '6px', background: c.bg, color: c.text, border: `1px solid ${c.borderFaint}`, borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <Upload size={12} /> Import
+            </button>
           </div>
-        )}
-      </div>
-
-      {/* Tab strip */}
-      <div style={{ display: 'flex', alignItems: 'center', borderBottom: `1px solid ${c.borderFaint}`, flexShrink: 0 }}>
-        {(['pages', 'drafts'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              flex: 1, padding: '8px 4px', background: 'none', border: 'none',
-              borderBottom: `2px solid ${activeTab === tab ? c.accent : 'transparent'}`,
-              fontFamily: uiFont, fontSize: '0.7rem', fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? c.accent : c.textFaint,
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}
-          >
-            {t(lang, tab)}
-            <span style={{ marginLeft: 4, fontSize: '0.62rem', opacity: 0.7 }}>
-              ({tab === 'pages' ? nonDrafts.length : drafts.length})
-            </span>
-          </button>
-        ))}
-        {/* Import file */}
-        <button
-          onClick={handleLeftPanelImport}
-          title="Import file (.txt, .md, .docx, .json)"
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: c.textFaint, padding: '4px 6px', transition: 'color 0.15s',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
-          onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-        >
-          <Upload size={13} />
-        </button>
-        {/* New page */}
-        <button
-          onClick={() => onNewPage(activeTab === 'drafts')}
-          title={activeTab === 'drafts' ? t(lang, 'newDraft') : t(lang, 'newPage')}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: c.textFaint, fontSize: '1rem', lineHeight: 1,
-            padding: '4px 6px', transition: 'color 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
-          onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-        >
-          +
-        </button>
-        
-      </div>
+        </div>
+      )}
 
       {/* Main scrollable body */}
-      <div style={{ flex: 1, height: '100%', maxHeight: '100%', overflowY: 'auto', overflowX: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {/* Tab content */}
-        <div style={{ flex: 1, paddingTop: 6, paddingBottom: 8, minHeight: 0 }}>
-          {renderTabContent(activeTab === 'drafts')}
+      <div style={{ flex: 1, height: '100%', overflowY: 'auto', overflowX: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 12 }}>
+        
+        {/* Pages Section */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {renderTabContent(false)}
         </div>
 
-        {/* Bin */}
-        <div style={{ borderTop: `1px solid ${c.borderFaint}`, padding: '8px 0 4px', flexShrink: 0 }}>
-          <button
-            onClick={() => setBinOpen(v => !v)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '4px 12px', background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: uiFont, fontSize: '0.62rem', fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.1em', color: c.textFaint,
-              transition: 'color 0.12s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
-            onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-          >
-            <span>{t(lang, 'bin')}{bin.length > 0 ? ` (${bin.length})` : ''}</span>
-            <span style={{ fontSize: '0.6rem', transform: binOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
-          </button>
-          {binOpen && (
-            <div style={{ padding: '4px 0' }}>
-              {bin.length === 0 ? (
-                <div style={{ padding: '6px 12px', fontFamily: uiFont, fontSize: '0.72rem', color: c.textFaint, fontStyle: 'italic' }}>
-                  {t(lang, 'deletedItems')} (0)
-                </div>
-              ) : (
-                <>
-                  {bin.map(page => (
-                    <div key={page.id} style={{ padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ flex: 1, fontFamily: uiFont, fontSize: '0.78rem', color: c.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {page.title}
-                      </span>
-                      <button onClick={() => onRestorePage(page.id)} title={t(lang, 'restore')}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.accent, display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0 }}>
-                        <RotateCcw size={12} />
-                      </button>
-                      <button onClick={() => onPermanentDelete(page.id)} title={t(lang, 'deleteForever')}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0, transition: 'color 0.12s' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#e05050')}
-                        onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
-                  <button onClick={onEmptyBin}
-                    style={{
-                      display: 'block', width: 'calc(100% - 24px)', margin: '4px 12px',
-                      padding: '4px 8px', borderRadius: 5, border: `1px solid ${c.borderFaint}`,
-                      background: 'none', cursor: 'pointer',
-                      fontFamily: uiFont, fontSize: '0.68rem', color: c.textFaint,
-                      transition: 'color 0.12s, border-color 0.12s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#e05050'; e.currentTarget.style.borderColor = '#e05050' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = c.textFaint; e.currentTarget.style.borderColor = c.borderFaint }}>
-                    {t(lang, 'emptyBin')}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+        {/* Drafts Section */}
+        <div style={{ marginTop: 24, marginBottom: 24 }}>
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+               <span style={{ fontSize: '0.9rem', fontWeight: 600, color: c.text, fontFamily: uiFont, letterSpacing: '0.05em' }}>Drafts</span>
+             </div>
+             <button 
+               onClick={() => { setActiveTab('drafts'); onNewPage(true); }} 
+               style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint }}
+             >
+               <Plus size={16} />
+             </button>
+           </div>
+           
+           <div style={{ display: 'flex', flexDirection: 'column' }}>
+             {renderTabContent(true)}
+           </div>
         </div>
+      </div>
 
-        {/* Sync status */}
-        <div style={{ padding: '8px 14px', borderTop: `1px solid ${c.borderFaint}`, display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%', background: syncDotColor, flexShrink: 0,
-            boxShadow: syncStatus === 'saving' ? `0 0 0 3px ${syncDotColor}44` : 'none',
-            animation: syncStatus === 'saving' ? 'pulse 1.2s ease-in-out infinite' : 'none',
-            transition: 'background 0.3s, box-shadow 0.3s',
-          }} />
-          <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
-          <span style={{ fontFamily: uiFont, fontSize: '0.68rem', color: c.textFaint, lineHeight: 1.4 }}>{syncLabel}</span>
-        </div>
-
-        {/* GitHub Cloud Save (Encrypted Backup) */}
-        <div style={{ padding: '10px 14px', borderTop: `1px solid ${c.borderFaint}`, flexShrink: 0 }}>
-          <span style={{ fontFamily: uiFont, fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: c.textFaint, display: 'block', marginBottom: 7 }}>
-            {t(lang, 'githubCloudSaveTitle')}
-          </span>
-          <button
+      {/* Footer */}
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0, borderTop: `1px solid ${c.borderFaint}` }}>
+        {onOpenGithubCloudSave && (
+          <button 
             onClick={onOpenGithubCloudSave}
-            style={{
-              width: '100%', padding: '7px 10px', borderRadius: 8, border: `1px solid ${c.border}`,
-              background: c.surface,
-              fontFamily: uiFont, fontSize: '0.74rem', color: c.text, fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+            style={{ 
+              width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${c.border}`, 
+              background: 'transparent', color: c.text, fontFamily: uiFont, fontSize: '0.75rem', fontWeight: 500,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.15s'
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = c.accent; e.currentTarget.style.background = c.panel }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.surface }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = c.accent; e.currentTarget.style.background = c.surface }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = 'transparent' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
             </svg>
-            <span>{t(lang, 'cloudSave')}</span>
+            Cloud Save & Sync
           </button>
+        )}
+        
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => setBinOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} title="Bin">
+              <Trash2 size={16} /> BIN
+            </button>
+          </div>
+          
+          {/* Sync Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.65rem', color: c.textFaint, fontFamily: uiFont }}>{syncLabel}</span>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: syncDotColor, boxShadow: syncStatus === 'saving' ? `0 0 0 3px ${syncDotColor}44` : 'none', transition: 'all 0.3s' }} />
+          </div>
         </div>
       </div>
+      
+      {/* Bin Overlay */}
+      {binOpen && (
+        <div style={{ position: 'absolute', bottom: 64, left: 16, width: 248, background: c.panel, border: `1px solid ${c.border}`, borderRadius: 12, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: `1px solid ${c.borderFaint}`, paddingBottom: 8 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bin</span>
+            {bin.length > 0 && (
+              <button onClick={onEmptyBin} style={{ fontSize: '0.7rem', color: '#e05050', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Empty All</button>
+            )}
+          </div>
+          {bin.length === 0 ? (
+            <div style={{ fontSize: '0.8rem', color: c.textFaint, textAlign: 'center', padding: '16px 0' }}>No deleted items</div>
+          ) : (
+            <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {bin.map(p => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px', background: c.surface, borderRadius: 6 }}>
+                  <span style={{ fontSize: '0.8rem', color: c.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, paddingRight: 8 }}>{p.title}</span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => onRestorePage(p.id)} style={{ padding: 4, background: c.accentLight, color: c.accent, borderRadius: 4, border: 'none', cursor: 'pointer' }} title="Restore"><RotateCcw size={12} /></button>
+                    <button onClick={() => onPermanentDelete(p.id)} style={{ padding: 4, background: 'rgba(224, 80, 80, 0.1)', color: '#e05050', borderRadius: 4, border: 'none', cursor: 'pointer' }} title="Delete Forever"><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

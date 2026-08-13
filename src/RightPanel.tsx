@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { PRESETS, buildHueTheme } from './theme'
 import { FormatState, CustomFont, PageFormat, Panel } from './types'
-import ColorWheel from './ColorWheel'
 import GoogleFontsPanel from './GoogleFontsPanel'
+import VersionHistoryPanel from './VersionHistoryPanel'
 import { Lang, t as i18nT, LANG_LABELS, LANG_FLAGS } from './i18n'
+import { CustomSelect } from './CustomSelect'
 import { Download, Upload, FileText, Printer, Copy, Check, FileCode, FileSpreadsheet, FileDown } from 'lucide-react'
 
 interface TiptapEditorType {
@@ -218,19 +220,7 @@ function RightPanel(props: Record<string, unknown>) {
     if (props.onSelectTheme && name) (props.onSelectTheme as (t: string) => void)(name.toLowerCase())
   })
 
-  const [colorOverrides, setColorOverrides] = useState<Record<string, string>>({})
-  const onColorOverride = (props.onColorOverride as ((key: string, value: string) => void)) || ((key: string, value: string) => {
-    setColorOverrides(prev => ({ ...prev, [key]: value }))
-    if (props.onCustomThemeChange) {
-      (props.onCustomThemeChange as (theme: Record<string, string>) => void)({
-        bg: key === 'bg' ? value : (colorOverrides.bg || c.bg),
-        text: key === 'text' ? value : (colorOverrides.text || c.text),
-        accent: key === 'accent' ? value : (colorOverrides.accent || c.accent),
-      })
-    }
-  })
-  const onColorReset = (props.onColorReset as (() => void)) || (() => setColorOverrides({}))
-
+  
   const bodyFont = (props.bodyFont || props.docFont || 'Merriweather') as string
   const headingFont = (props.headingFont || props.docFont || 'Merriweather') as string
   const uiFont2 = (props.uiFont2 || props.uiFont || 'Inter') as string
@@ -256,12 +246,9 @@ function RightPanel(props: Record<string, unknown>) {
   const onPageFormatChange = (props.onPageFormatChange as ((pf: PageFormat) => void)) || (() => {})
   const [copied, setCopied] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [activeRole, setActiveRole] = useState<'body' | 'heading' | 'ui' | 'mono'>('body')
-  const [showColorWheel, setShowColorWheel] = useState(false)
+  const activeRole = "body";
+  
   const [showGoogleFonts, setShowGoogleFonts] = useState(false)
-  const [gradColor1, setGradColor1] = useState('#667eea')
-  const [gradColor2, setGradColor2] = useState('#764ba2')
-  const [gradAngle, setGradAngle] = useState(135)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importFileInputRef = useRef<HTMLInputElement>(null)
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -403,21 +390,26 @@ ${content.split('\n\n').map(para => {
   )
 
   const fontSelect = (value: string, onChange: (v: string) => void) => (
-    <select
+    <CustomSelect
       value={value}
-      onChange={e => onChange(e.target.value)}
-      style={{
+      onChange={onChange}
+      theme={c}
+      options={availableFontNames.map(n => ({ value: n, label: n }))}
+      buttonStyle={{
         width: '100%', padding: '5px 8px', borderRadius: 6,
         border: `1px solid ${c.border}`, background: c.surface,
         fontFamily: `'${value}', serif`, fontSize: '0.82rem', color: c.text,
-        cursor: 'pointer', outline: 'none',
-        appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
-        paddingRight: 24,
+        cursor: 'pointer', outline: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}
-    >
-      {availableFontNames.map(n => <option key={n} value={n} style={{ background: c.isDark ? '#1f2937' : '#ffffff', color: c.text }}>{n}</option>)}
-    </select>
+      renderButtonContent={(opt) => (
+        <>
+          <span>{opt?.label || value}</span>
+          <svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' style={{ fill: c.textMuted }}>
+            <path d='M0 0l5 6 5-6z'/>
+          </svg>
+        </>
+      )}
+    />
   )
 
   const isOpen = panel !== 'none'
@@ -425,9 +417,10 @@ ${content.split('\n\n').map(para => {
   const TABS: { key: Exclude<Panel, 'none' | 'preview' | 'importexport'>; icon: string; label: string }[] = [
     { key: 'format', icon: '¶', label: 'Format' },
     { key: 'export', icon: '↓', label: 'Export' },
-    { key: 'colors', icon: '◉', label: 'Colors' },
+    
     { key: 'fonts', icon: 'Aa', label: 'Fonts' },
     { key: 'timer', icon: '◷', label: 'Timer' },
+    { key: 'history', icon: '⟲', label: 'History' },
     { key: 'settings', icon: '⚙', label: 'Settings' },
   ]
 
@@ -506,9 +499,10 @@ ${content.split('\n\n').map(para => {
               <span style={{ fontFamily: uiFont, fontSize: '0.78rem', fontWeight: 700, color: c.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {panel === 'format' ? (t(lang, 'format') || 'Format') :
                  panel === 'export' ? (t(lang, 'export') || 'Export') :
-                 panel === 'colors' ? (t(lang, 'colors') || 'Colors') :
+                 
                  panel === 'fonts' ? (t(lang, 'fonts') || 'Fonts') :
                  panel === 'timer' ? (t(lang, 'timer') || 'Timer') :
+                 panel === 'history' ? (t(lang, 'versionHistory') || 'History') :
                  panel === 'review' ? ('Review Center') :
                  (t(lang, 'settings') || 'Settings')}
               </span>
@@ -1011,7 +1005,7 @@ ${content.split('\n\n').map(para => {
                 <button onClick={onTimerReset}
                   style={{
                     padding: '6px 20px', borderRadius: 6,
-                    background: c.accent, color: 'white', border: 'none',
+                    background: c.accent, color: c.isDark ? c.bg : 'white', border: 'none',
                     fontFamily: uiFont, fontSize: '0.8rem', fontWeight: 600,
                     cursor: 'pointer',
                   }}
@@ -1025,7 +1019,7 @@ ${content.split('\n\n').map(para => {
                   <button onClick={onTimerToggle}
                     style={{
                       width: 44, height: 44, borderRadius: '50%',
-                      background: c.accent, color: 'white', border: 'none',
+                      background: c.accent, color: c.isDark ? c.bg : 'white', border: 'none',
                       fontSize: '1rem', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'opacity 0.15s',
@@ -1072,135 +1066,6 @@ ${content.split('\n\n').map(para => {
                 )}
               </>
             )}
-          </div>
-        )}
-
-        {/* COLORS PANEL */}
-        {panel === 'colors' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <SectionLabel label={t(lang, 'themePresets')} uiFont={uiFont} c={c} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                {PRESETS.map(preset => (
-                  <button
-                    key={preset.name}
-                    onClick={() => onPresetSelect(preset.name)}
-                    style={{
-                      padding: '8px 10px', borderRadius: 8, textAlign: 'left',
-                      border: `1.5px solid ${activePresetName === preset.name ? c.accent : c.borderFaint}`,
-                      background: activePresetName === preset.name ? c.accentLight : (c.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'),
-                      cursor: 'pointer', transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={e => { if (activePresetName !== preset.name) e.currentTarget.style.borderColor = c.accentMid }}
-                    onMouseLeave={e => { if (activePresetName !== preset.name) e.currentTarget.style.borderColor = c.borderFaint }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                      <span style={{ fontFamily: uiFont, fontSize: '0.72rem', fontWeight: 600, color: activePresetName === preset.name ? c.accent : c.text }}>
-                        {preset.name}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {[preset.bg, preset.accent, preset.accentMid, preset.surface].map((clr, i) => (
-                        <div key={i} style={{ flex: 1, height: 6, borderRadius: 2, background: clr }} />
-                      ))}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <SectionLabel label={t(lang, 'custom')} uiFont={uiFont} c={c} />
-              {/* Colour Wheel toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontFamily: uiFont, fontSize: '0.72rem', color: c.text }}>{t(lang, 'colourWheel')}</span>
-                <button
-                  onClick={() => setShowColorWheel(v => !v)}
-                  style={{
-                    padding: '3px 9px', borderRadius: 5, cursor: 'pointer',
-                    border: `1px solid ${showColorWheel ? c.accent : c.border}`,
-                    background: showColorWheel ? c.accentLight : 'transparent',
-                    fontFamily: uiFont, fontSize: '0.68rem',
-                    color: showColorWheel ? c.accent : c.textMuted,
-                    transition: 'all 0.12s',
-                  }}
-                >
-                  {showColorWheel ? t(lang, 'colourPicker') : t(lang, 'colourWheel')}
-                </button>
-              </div>
-              {showColorWheel ? (
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                  <ColorWheel
-                    value={colorOverrides['accent'] || c.accent.replace(/[^#\w]/g, '').substring(0, 7) || '#6688cc'}
-                    onChange={v => onColorOverride('accent', v)}
-                    size={130}
-                  />
-                </div>
-              ) : (
-                [
-                  { key: 'bg', label: 'Background' },
-                  { key: 'text', label: 'Text' },
-                  { key: 'accent', label: 'Accent' },
-                  { key: 'surface', label: 'Surface' },
-                  { key: 'border', label: 'Border' },
-                ].map(({ key, label: lbl }) => (
-                  <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontFamily: uiFont, fontSize: '0.75rem', color: c.text }}>{lbl}</span>
-                    <input
-                      type="color"
-                      value={colorOverrides[key] || '#888888'}
-                      onChange={e => onColorOverride(key, e.target.value)}
-                      style={{ width: 32, height: 22, border: `1px solid ${c.border}`, borderRadius: 4, cursor: 'pointer' }}
-                    />
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div>
-              <SectionLabel label={t(lang, 'backgroundGradient')} uiFont={uiFont} c={c} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontFamily: uiFont, fontSize: '0.72rem', color: c.textFaint, width: 50 }}>{t(lang, 'colour1')}</span>
-                <input type="color" value={gradColor1} onChange={e => { setGradColor1(e.target.value); onColorOverride('gradient', `linear-gradient(${gradAngle}deg, ${e.target.value}, ${gradColor2})`) }} style={{ width: 32, height: 22, border: `1px solid ${c.border}`, borderRadius: 4, cursor: 'pointer' }} />
-                <div style={{ flex: 1, height: 10, borderRadius: 4, background: `linear-gradient(90deg, ${gradColor1}, ${gradColor2})` }} />
-                <input type="color" value={gradColor2} onChange={e => { setGradColor2(e.target.value); onColorOverride('gradient', `linear-gradient(${gradAngle}deg, ${gradColor1}, ${e.target.value})`) }} style={{ width: 32, height: 22, border: `1px solid ${c.border}`, borderRadius: 4, cursor: 'pointer' }} />
-                <span style={{ fontFamily: uiFont, fontSize: '0.72rem', color: c.textFaint, width: 50, textAlign: 'right' }}>{t(lang, 'colour2')}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: uiFont, fontSize: '0.72rem', color: c.textFaint }}>{t(lang, 'angle')} {gradAngle}°</span>
-                <input type="range" min={0} max={360} value={gradAngle}
-                  onChange={e => { const a = Number(e.target.value); setGradAngle(a); onColorOverride('gradient', `linear-gradient(${a}deg, ${gradColor1}, ${gradColor2})`) }}
-                  style={{ flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <SectionLabel label={t(lang, 'hueSlider')} uiFont={uiFont} c={c} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input type="range" min={0} max={359} value={hue}
-                  onChange={e => { onPresetSelect(null); onHueChange(Number(e.target.value)) }}
-                  className="hue-slider" style={{ flex: 1 }} />
-                <input type="number" min={0} max={359} value={hue}
-                  className="no-spin"
-                  onChange={e => { const v = Number(e.target.value); if (v >= 0 && v <= 359) { onPresetSelect(null); onHueChange(v) } }}
-                  style={{ width: 42, padding: '3px 4px', textAlign: 'center', fontFamily: monoFont, fontSize: '0.7rem', color: c.text, background: 'transparent', border: `1px solid ${c.borderFaint}`, borderRadius: 4, outline: 'none' }} />
-              </div>
-            </div>
-
-            <button
-              onClick={onColorReset}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: uiFont, fontSize: '0.72rem', color: c.textFaint,
-                textDecoration: 'underline', padding: 0, alignSelf: 'flex-start',
-                transition: 'color 0.12s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = c.accent)}
-              onMouseLeave={e => (e.currentTarget.style.color = c.textFaint)}
-            >
-              {t(lang, 'resetToDefault')}
-            </button>
           </div>
         )}
 
@@ -1313,21 +1178,27 @@ ${content.split('\n\n').map(para => {
                       {value}
                     </span>
                   </div>
-                  <select
+                  <CustomSelect
                     value={value}
-                    onChange={e => onFontAssign(role, e.target.value)}
-                    onFocus={() => setActiveRole(role)}
-                    style={{
+                    onChange={(v) => onFontAssign(role, v)}
+                    theme={c}
+                    options={availableFontNames.concat(customFonts.map(f => f.name || f.family)).map(n => ({ value: n, label: n }))}
+                    buttonStyle={{
                       width: '100%', padding: '5px 8px', borderRadius: 6,
                       border: `1px solid ${activeRole === role ? c.accent : c.border}`,
                       background: c.surface, fontFamily: `'${value}', serif`,
                       fontSize: '0.8rem', color: c.text, cursor: 'pointer', outline: 'none',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}
-                  >
-                    {availableFontNames.concat(customFonts.map(f => f.name || f.family)).map(n => (
-                      <option key={n} value={n} style={{ background: c.isDark ? '#1f2937' : '#ffffff', color: c.text }}>{n}</option>
-                    ))}
-                  </select>
+                    renderButtonContent={(opt) => (
+                      <>
+                        <span>{opt?.label || value}</span>
+                        <svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' style={{ fill: c.textMuted }}>
+                          <path d='M0 0l5 6 5-6z'/>
+                        </svg>
+                      </>
+                    )}
+                  />
                 </div>
               ))}
             </div>
@@ -1479,6 +1350,18 @@ ${content.split('\n\n').map(para => {
             </div>
           </div>
         )}
+        
+        {/* HISTORY PANEL */}
+        {panel === 'history' && (
+          <VersionHistoryPanel
+            activePage={props.activePage as any }
+            theme={props.theme as any }
+            lang={lang}
+            uiFont={uiFont}
+            onRestore={props.onRestore as any }
+          />
+        )}
+
         {/* SETTINGS PANEL */}
         {panel === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

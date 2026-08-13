@@ -6,6 +6,7 @@ import { db, getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAllF
 import { exportToJsonBackup, importJsonBackupFile } from './fileHandlers';
 import { Lang, t } from './i18n';
 import { PRESETS } from './theme';
+import { CustomSelect } from './CustomSelect';
 
 interface WelcomeScreenProps {
   theme: ThemeColors;
@@ -47,6 +48,8 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('updated');
+  const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
+  const [isDataMenuOpen, setIsDataMenuOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{ isOpen: boolean; type: 'project' | 'folder' | null; id: string | null; name: string }>({
@@ -73,6 +76,15 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
   useEffect(() => {
     loadData();
   }, [loadData, refreshTrigger]);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setIsNewMenuOpen(false);
+      setIsDataMenuOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -420,19 +432,22 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
         style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface }}
       >
         <div className="flex flex-row md:flex-col items-center md:items-start gap-3 md:gap-10 w-full">
-          <div className="mb-0 md:mb-0 px-0 md:px-2">
-            <h2 className="text-lg md:text-xl font-medium tracking-tight" style={{ color: theme.text }}>{t(lang, 'workspace')}</h2>
+          <div className="mb-0 md:mb-0 px-0 md:px-2 flex items-center justify-center md:justify-start w-full">
+            <h2 className="text-2xl md:text-3xl font-serif tracking-tight" style={{ color: theme.text, fontFamily: `'${uiFont}', Georgia, serif` }}>
+              Prose
+            </h2>
           </div>
-
-          <nav className="flex flex-row md:flex-col gap-2 w-full">
+          <nav className="flex flex-row md:flex-col gap-2 w-full mt-2">
             <button 
               onClick={() => setTab('active')} 
-              className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
+              className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-full transition-all border"
               style={{ 
-                backgroundColor: tab === 'active' ? theme.accentLight : 'transparent',
+                backgroundColor: tab === 'active' ? 'transparent' : 'transparent',
                 borderColor: tab === 'active' ? theme.border : 'transparent',
                 color: tab === 'active' ? theme.text : theme.textMuted
               }}
+              onMouseEnter={e => { if (tab !== 'active') e.currentTarget.style.backgroundColor = theme.panel; }}
+              onMouseLeave={e => { if (tab !== 'active') e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               <Home size={16} strokeWidth={tab === 'active' ? 2 : 1.5} />
               <span className="font-medium text-xs md:text-sm">{t(lang, 'active')}</span>
@@ -440,12 +455,14 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
             
             <button 
               onClick={() => setTab('trash')} 
-              className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg transition-all border"
+              className="flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-full transition-all border"
               style={{ 
-                backgroundColor: tab === 'trash' ? theme.accentLight : 'transparent',
+                backgroundColor: tab === 'trash' ? 'transparent' : 'transparent',
                 borderColor: tab === 'trash' ? theme.border : 'transparent',
                 color: tab === 'trash' ? theme.text : theme.textMuted
               }}
+              onMouseEnter={e => { if (tab !== 'trash') e.currentTarget.style.backgroundColor = theme.panel; }}
+              onMouseLeave={e => { if (tab !== 'trash') e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               <Trash2 size={16} strokeWidth={tab === 'trash' ? 2 : 1.5} />
               <span className="font-medium text-xs md:text-sm">{t(lang, 'trash')}</span>
@@ -526,107 +543,118 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto w-full min-w-0">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto w-full min-w-0" onClick={() => { setIsNewMenuOpen(false); setIsDataMenuOpen(false); }}>
         {/* Header / Greeting */}
-        <div className="w-full max-w-5xl flex flex-col items-start gap-3 mt-4 mb-12 animate-fade-in-up">
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight" style={{ color: theme.text }}>
-            {timeGreeting},
-          </h1>
-          <p className="text-xl font-light" style={{ color: theme.textFaint }}>
-            {t(lang, 'whatAreWeWriting')}
-          </p>
+        <div className="w-full max-w-5xl flex flex-col md:flex-row items-start md:items-end justify-between mt-4 mb-10 gap-4 animate-fade-in-up relative z-20">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-4xl md:text-5xl tracking-tight" style={{ color: theme.text, fontFamily: `'${uiFont}', Georgia, serif` }}>
+              {timeGreeting},
+            </h1>
+            <p className="text-lg md:text-xl font-light" style={{ color: theme.textFaint }}>
+              {t(lang, 'whatAreWeWriting')}
+            </p>
+          </div>
+          
+          {/* Header Right Actions */}
+          {tab === 'active' && (
+            <div className="flex items-center gap-2 pb-1">
+               {/* Data (Import/Export) Dropdown */}
+               <div className="relative">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsDataMenuOpen(!isDataMenuOpen); setIsNewMenuOpen(false); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all cursor-pointer font-medium text-sm border"
+                    style={{ 
+                      borderColor: theme.borderFaint,
+                      backgroundColor: 'transparent', 
+                      color: theme.text 
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    <Upload size={16} strokeWidth={2} />
+                    <span className="hidden sm:inline">Import</span>
+                  </button>
+                  {isDataMenuOpen && (
+                    <div 
+                      className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-xl py-2 z-50 animate-fade-in-up flex flex-col"
+                      style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}
+                    >
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textFaint }}>
+                        Import
+                      </div>
+                      <button onClick={() => { onImport(); setIsDataMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <Upload size={16} style={{ color: theme.textMuted }} />
+                        <span>{t(lang, 'importDocumentBtn')}</span>
+                      </button>
+                      <button onClick={() => { handleImportBackupJson(); setIsDataMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <FileJson size={16} className="text-emerald-500" />
+                        <span>{t(lang, 'backupImport')}</span>
+                      </button>
+                      
+                      <div className="h-[1px] w-full my-1" style={{ backgroundColor: theme.borderFaint }} />
+                      
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textFaint }}>
+                        Export
+                      </div>
+                      <button onClick={() => { onExportAll(); setIsDataMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <Download size={16} style={{ color: theme.textMuted }} />
+                        <span>{t(lang, 'exportDocumentsBtn')}</span>
+                      </button>
+                      <button onClick={() => { handleExportBackupJson(); setIsDataMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <FileJson size={16} className="text-amber-500" />
+                        <span>{t(lang, 'backupExport')}</span>
+                      </button>
+                    </div>
+                  )}
+               </div>
+
+               {/* New Button with Dropdown */}
+                <div className="relative">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsNewMenuOpen(!isNewMenuOpen); setIsDataMenuOpen(false); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all cursor-pointer font-medium text-sm border"
+                    style={{ 
+                      backgroundColor: theme.accentLight, 
+                      color: theme.accent,
+                      borderColor: 'transparent'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                  >
+                    <Plus size={16} strokeWidth={2} />
+                    <span>New</span>
+                  </button>
+                  {isNewMenuOpen && (
+                    <div 
+                      className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-xl py-2 z-50 animate-fade-in-up flex flex-col"
+                      style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}
+                    >
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textFaint }}>
+                        Documents
+                      </div>
+                      <button onClick={() => { handleNewProject(); setIsNewMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <FileText size={16} style={{ color: theme.textMuted }} />
+                        <span>Blank document</span>
+                      </button>
+                      
+                      <div className="h-[1px] w-full my-1" style={{ backgroundColor: theme.borderFaint }} />
+                      
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textFaint }}>
+                        Folders
+                      </div>
+                      <button onClick={() => { handleNewFolder(); setIsNewMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <FolderOpen size={16} style={{ color: theme.textMuted }} />
+                        <span>New folder</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions & Navigation Toolbar */}
         <div className="w-full max-w-5xl flex flex-col gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          {/* Row 1: Primary creation & quick buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center flex-wrap gap-2.5">
-              <button 
-                onClick={handleNewProject} 
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border transition-all cursor-pointer font-medium text-xs tracking-wide shadow-sm hover:shadow"
-                style={{ 
-                  borderColor: theme.border, 
-                  backgroundColor: theme.surface, 
-                  color: theme.text 
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
-              >
-                <Plus size={15} strokeWidth={1.5} />
-                <span>{t(lang, 'newProject')}</span>
-              </button>
-
-              <button 
-                onClick={handleNewFolder} 
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all cursor-pointer font-medium text-xs"
-                style={{ 
-                  borderColor: theme.borderFaint, 
-                  backgroundColor: theme.surface, 
-                  color: theme.textMuted 
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
-              >
-                <FolderOpen size={15} strokeWidth={1.5} />
-                <span>{t(lang, 'newFolder')}</span>
-              </button>
-
-              <div className="h-4 w-[1px] mx-1" style={{ backgroundColor: theme.borderFaint }} />
-
-              <button 
-                onClick={onImport} 
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer text-xs" 
-                title={t(lang, 'importDocumentBtn')}
-                style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface, color: theme.textMuted }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
-              >
-                <Upload size={14} strokeWidth={1.5} />
-                <span className="hidden sm:inline">{t(lang, 'importDocumentBtn')}</span>
-              </button>
-
-              <button 
-                onClick={onExportAll} 
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer text-xs" 
-                title={t(lang, 'exportDocumentsBtn')}
-                style={{ borderColor: theme.borderFaint, backgroundColor: theme.surface, color: theme.textMuted }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.panel; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.surface; }}
-              >
-                <Download size={14} strokeWidth={1.5} />
-                <span className="hidden sm:inline">{t(lang, 'exportDocumentsBtn')}</span>
-              </button>
-            </div>
-
-            {/* JSON Backup Buttons */}
-            <div className="flex items-center gap-1.5 border rounded-xl p-1 shadow-sm" style={{ backgroundColor: theme.surface, borderColor: theme.borderFaint }}>
-              <button 
-                onClick={handleExportBackupJson}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                style={{ color: theme.text }}
-                title={t(lang, 'quickExportBackup')}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.panel}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <FileJson size={14} className="text-amber-500" />
-                <span>{t(lang, 'backupExport')}</span>
-              </button>
-              <div className="w-[1px] h-4" style={{ backgroundColor: theme.borderFaint }} />
-              <button 
-                onClick={handleImportBackupJson}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                style={{ color: theme.text }}
-                title={t(lang, 'quickImportBackup')}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.panel}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <Upload size={14} className="text-emerald-500" />
-                <span>{t(lang, 'backupImport')}</span>
-              </button>
-            </div>
-          </div>
-
           {/* Row 2: Search input, Sort selector & View Mode Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t" style={{ borderColor: theme.borderFaint }}>
             {/* Search Input */}
@@ -663,19 +691,21 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs" style={{ backgroundColor: theme.surface, borderColor: theme.borderFaint }}>
                 <ArrowUpDown size={13} style={{ color: theme.textFaint }} />
                 <span className="text-[11px] font-medium hidden sm:inline" style={{ color: theme.textMuted }}>{t(lang, 'sortBy')}:</span>
-                <select 
+                <CustomSelect
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="bg-transparent text-xs outline-none cursor-pointer font-medium"
-                  style={{ color: theme.text }}
-                >
-                  <option value="updated" style={{ backgroundColor: theme.surface, color: theme.text }}>{t(lang, 'sortUpdated')}</option>
-                  <option value="newest" style={{ backgroundColor: theme.surface, color: theme.text }}>{t(lang, 'sortNewest')}</option>
-                  <option value="oldest" style={{ backgroundColor: theme.surface, color: theme.text }}>{t(lang, 'sortOldest')}</option>
-                  <option value="nameAZ" style={{ backgroundColor: theme.surface, color: theme.text }}>{t(lang, 'sortNameAZ')}</option>
-                  <option value="nameZA" style={{ backgroundColor: theme.surface, color: theme.text }}>{t(lang, 'sortNameZA')}</option>
-                  <option value="pages" style={{ backgroundColor: theme.surface, color: theme.text }}>{t(lang, 'sortPagesCount')}</option>
-                </select>
+                  onChange={(val) => setSortBy(val as SortOption)}
+                  theme={theme}
+                  buttonClassName="bg-transparent text-xs outline-none font-medium flex items-center gap-1"
+                  options={[
+                    { value: 'updated', label: t(lang, 'sortUpdated') },
+                    { value: 'newest', label: t(lang, 'sortNewest') },
+                    { value: 'oldest', label: t(lang, 'sortOldest') },
+                    { value: 'nameAZ', label: t(lang, 'sortNameAZ') },
+                    { value: 'nameZA', label: t(lang, 'sortNameZA') },
+                    { value: 'pages', label: t(lang, 'sortPagesCount') },
+                  ]}
+                  dropdownClassName="w-48 right-0"
+                />
               </div>
 
               {/* View Mode Toggle */}
@@ -830,8 +860,8 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                               </h3>
                             )}
                           </div>
-                          {/* Actions (Fade in on hover) */}
-                          <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                          {/* Actions (Always visible) */}
+                          <div className="flex-shrink-0 flex items-center gap-1 transition-opacity" onClick={(e) => e.stopPropagation()}>
                             {tab === 'active' ? (
                               <>
                                 <button onClick={(e) => handleStartEditFolder(folder.id, folder.name, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Rename">

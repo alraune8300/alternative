@@ -12,6 +12,7 @@ import type { Editor } from '@tiptap/react';
 import type { ThemeColors } from './types';
 import type { Dict } from './i18n';
 import { compressImage } from './imageUtils';
+import { CustomSelect } from './CustomSelect';
 
 type Props = {
   editor: Editor;
@@ -53,8 +54,7 @@ function Toolbar({
   selectedFont, selectedSize, availableFonts,
   onFontChange, onSizeChange, onSizeInput,
   sidebarOpen, onToggleSidebar,
-  rightOpen, onToggleSettings,
-  isFocusMode, onToggleFocusMode,
+  rightOpen, onToggleSettings, isFocusMode, onToggleFocusMode,
   isPreviewMode, onTogglePreviewMode,
   typewriterMode, onToggleTypewriterMode,
   onUndo, onRedo, canUndo, canRedo,
@@ -187,36 +187,21 @@ function Toolbar({
         const monoFonts = availableFonts.filter(f => monoFamilies.includes(f.family));
         const sansFonts = availableFonts.filter(f => !serifFamilies.includes(f.family) && !monoFamilies.includes(f.family));
 
+        const groups = [];
+        if (serifFonts.length > 0) groups.push({ label: 'SERIF', options: serifFonts.map(f => ({ value: f.family, label: f.label, fontFamily: `'${f.family}', serif` })) });
+        if (sansFonts.length > 0) groups.push({ label: 'SANS-SERIF', options: sansFonts.map(f => ({ value: f.family, label: f.label, fontFamily: `'${f.family}', sans-serif` })) });
+        if (monoFonts.length > 0) groups.push({ label: 'MONOSPACE', options: monoFonts.map(f => ({ value: f.family, label: f.label, fontFamily: `'${f.family}', monospace` })) });
+
         return (
-          <select
+          <CustomSelect
             value={currentFont}
-            onChange={(e) => onFontChange(e.target.value)}
-            className="text-xs py-1.5 px-2 rounded-md outline-none cursor-pointer mr-1 max-w-[140px] shrink-0"
-            style={{ backgroundColor: theme.isDark ? theme.surface : theme.accentSoft, color: theme.text, border: `1px solid ${theme.border}` }}
-            title={t.fontName || 'Font Family'}
-          >
-            {serifFonts.length > 0 && (
-              <optgroup label="[SERIF]">
-                {serifFonts.map((f) => (
-                  <option key={f.family} value={f.family} style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', color: theme.text, fontFamily: `'${f.family}', serif` }}>{f.label}</option>
-                ))}
-              </optgroup>
-            )}
-            {sansFonts.length > 0 && (
-              <optgroup label="[SANS-SERIF]">
-                {sansFonts.map((f) => (
-                  <option key={f.family} value={f.family} style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', color: theme.text, fontFamily: `'${f.family}', sans-serif` }}>{f.label}</option>
-                ))}
-              </optgroup>
-            )}
-            {monoFonts.length > 0 && (
-              <optgroup label="[MONOSPACE]">
-                {monoFonts.map((f) => (
-                  <option key={f.family} value={f.family} style={{ backgroundColor: theme.isDark ? '#1f2937' : '#ffffff', color: theme.text, fontFamily: `'${f.family}', monospace` }}>{f.label}</option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+            onChange={onFontChange}
+            groups={groups}
+            theme={theme}
+            buttonClassName="text-xs py-1.5 px-2 rounded-md outline-none cursor-pointer mr-1 max-w-[140px] shrink-0"
+            buttonStyle={{ backgroundColor: theme.isDark ? theme.surface : theme.accentSoft, color: theme.text, border: `1px solid ${theme.border}` }}
+            dropdownClassName="w-56 mt-2"
+          />
         );
       })()}
 
@@ -389,6 +374,7 @@ function Toolbar({
             label={t.cloudSave || 'Cloud Save'}
           />
         )}
+                    
         {onToggleSettings && (
           <>
             <Divider />

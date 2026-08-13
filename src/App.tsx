@@ -136,6 +136,8 @@ export default function App() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [typewriterMode, setTypewriterMode] = useState(false);
   const [githubModalOpen, setGithubModalOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<string>('settings');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [zoomInput, setZoomInput] = useState<string>('100');
   const [containerWidth, setContainerWidth] = useState(window.innerWidth);
@@ -704,6 +706,27 @@ export default function App() {
       });
     });
   }, [activeProjectId, activePageId, scheduleSaveProject]);
+
+  const handleOpenGithubCloudSave = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const activeProj = projects.find(p => p.id === activeProjectId);
+    if (activeProj) {
+      const jsonStr = JSON.stringify(activeProj);
+      if (jsonStr !== lastSavedProjRef.current) {
+        setSaving(true);
+        try {
+          await saveProjectToDB(activeProj);
+          lastSavedProjRef.current = jsonStr;
+        } finally {
+          setSaving(false);
+        }
+      }
+    }
+    setGithubModalOpen(true);
+  }, [projects, activeProjectId]);
 
   const handleContentChange = useCallback((html: string) => {
     updateActivePage({ content: html });
@@ -1409,7 +1432,8 @@ export default function App() {
           uiFont={uiFont}
           lang={lang}
           onEmptyAllTrash={emptyAllTrash}
-          onOpenGithubCloudSave={() => setGithubModalOpen(true)}
+          refreshTrigger={refreshTrigger}
+          onOpenGithubCloudSave={handleOpenGithubCloudSave}
           onOpenProject={(projectId, pageId) => {
             handleSelectProject(projectId);
             if (pageId) setActivePageId(pageId);
@@ -1437,7 +1461,8 @@ export default function App() {
             exportToJsonBackup(projects);
           }}
         />
-        <GithubCloudSaveModal
+              
+      <GithubCloudSaveModal
           isOpen={githubModalOpen}
           onClose={() => setGithubModalOpen(false)}
           lang={lang}
@@ -1452,6 +1477,7 @@ export default function App() {
                 setActivePageId(projs[0].pages[0]?.id || '');
               }
             }
+            setRefreshTrigger(prev => prev + 1);
           }}
         />
       </>
@@ -1496,6 +1522,8 @@ export default function App() {
           activePageId={activePageId}
           onGoHome={() => setIsWorkspaceActive(false)}
           theme={theme}
+          themeMode={themeMode}
+          onSelectTheme={handleSelectTheme}
           uiFont={uiFont}
           lang={lang}
           t={t}
@@ -1516,7 +1544,7 @@ export default function App() {
           onPermanentDelete={permanentDeletePage}
           onEmptyBin={emptyAllTrash}
           onCloseSidebar={() => setSidebarOpen(false)}
-          onOpenGithubCloudSave={() => setGithubModalOpen(true)}
+          onOpenGithubCloudSave={handleOpenGithubCloudSave}
           onImportFile={handleImportFile}
           onReloadProjects={async () => {
             const projs = await getAllProjectsFromDB();
@@ -1546,7 +1574,7 @@ export default function App() {
               <button
                 onClick={handleCommitDraft}
                 className="ml-4 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-                style={{ backgroundColor: theme.accent, color: '#fff' }}
+                style={{ backgroundColor: theme.accent, color: theme.isDark ? theme.bg : '#fff' }}
                 title="Update original document with these changes"
               >
                 Commit to Original
@@ -1557,7 +1585,7 @@ export default function App() {
 
         {!isFocusMode && !isPreviewMode && editorInstance && showRibbon && (
           <div 
-            className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between px-4 transition-all duration-200"
+            className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between pl-4 pr-4 md:pr-[72px] transition-all duration-200"
             style={{
               backgroundColor: theme.surface,
               ...mobileRibbonStyle
@@ -1586,8 +1614,11 @@ export default function App() {
                                                 sidebarOpen={sidebarOpen}
                 onToggleSidebar={() => setSidebarOpen(v => !v)}
                 rightOpen={rightOpen}
-                onToggleSettings={() => setRightOpen(v => !v)}
-                onOpenGithubCloudSave={() => setGithubModalOpen(true)}
+                onToggleSettings={() => {
+          if (rightOpen && rightPanelTab === 'settings') setRightOpen(false);
+          else { setRightPanelTab('settings'); setRightOpen(true); }
+        }}
+        onOpenGithubCloudSave={handleOpenGithubCloudSave}
                 isFocusMode={isFocusMode}
                 onToggleFocusMode={handleToggleFocusMode}
                 isPreviewMode={isPreviewMode}
@@ -1902,6 +1933,15 @@ export default function App() {
       >
         <RightPanel
           key={activeProjectId}
+          panel={rightPanelTab}
+          onSectionChange={setRightPanelTab}
+          activePage={activePage || null}
+          onRestore={(content, title) => {
+            updateActivePage({ content, title, lastModified: new Date().toISOString() });
+            if (activeProjectId) {
+              renamePage(activePageId, title);
+            }
+          }}
           editor={editorInstance}
           formatState={formatState}
           onFormatChange={handleFormatChange}
@@ -1989,7 +2029,7 @@ export default function App() {
               }}
               title="Download text backup (.txt)"
               style={{
-                background: theme.accent, color: '#fff', border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                background: theme.accent, color: theme.isDark ? theme.bg : '#fff', border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
               }}
             >
               ↓ Backup .txt
@@ -2120,6 +2160,7 @@ export default function App() {
               setActivePageId(projs[0].pages[0]?.id || '');
             }
           }
+          setRefreshTrigger(prev => prev + 1);
         }}
       />
     </div>
