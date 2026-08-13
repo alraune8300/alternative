@@ -679,16 +679,15 @@ export default function App() {
           return p;
         });
 
-        if (!pageFound && (updatedPages.length > 0 || updatedDrafts.length > 0)) {
-          // If no page matched activePageId, update the first page
-          if (updatedPages.length > 0) updatedPages[0] = { ...updatedPages[0], ...patch, lastModified: now };
-          else updatedDrafts[0] = { ...updatedDrafts[0], ...patch, lastModified: now };
+        if (!pageFound) {
+          // If the page doesn't exist (e.g. was just deleted), do not update anything.
+          return proj;
         }
 
         let updatedTitle = proj.title;
         if (patch.title !== undefined) {
           // Sync project title if editing the first page
-          if (updatedPages[0]?.id === activePageId || updatedDrafts[0]?.id === activePageId || !pageFound) {
+          if (updatedPages[0]?.id === activePageId || updatedDrafts[0]?.id === activePageId) {
             updatedTitle = patch.title;
           }
         }
