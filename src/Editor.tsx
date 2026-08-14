@@ -46,16 +46,14 @@ function Editor({
         const state = editor.state;
         if (!state.selection.empty) return; // Skip if text is selected
         const coords = view.coordsAtPos(state.selection.head);
-        const scrollContainers = document.querySelectorAll(".kgv-scroll");
-        if (coords) {
-          scrollContainers.forEach(scrollContainer => {
-            if (scrollContainer.scrollHeight > scrollContainer.clientHeight) {
-              const containerRect = scrollContainer.getBoundingClientRect();
-              const caretY = coords.top - containerRect.top + scrollContainer.scrollTop;
-              const targetScroll = caretY - (containerRect.height / 2);
-              scrollContainer.scrollTo({ top: targetScroll, behavior: "smooth" });
-            }
-          });
+        const scrollContainer = document.querySelector(".kgv-scroll");
+        if (coords && scrollContainer) {
+          if (scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const caretY = coords.top - containerRect.top + scrollContainer.scrollTop;
+            const targetScroll = caretY - (containerRect.height / 2);
+            scrollContainer.scrollTo({ top: targetScroll, behavior: "smooth" });
+          }
         }
       } catch (e) {
         console.warn('Typewriter scroll calculation failed:', e);
@@ -116,9 +114,11 @@ function Editor({
     },
     onTransaction: ({ transaction }) => {
       // Keep scroll coordinates locked when selections change from external formatting commands
-      if (transaction.selectionSet && !callbacksRef.current.typewriterMode) {
-        const scrollContainers = document.querySelectorAll('.overflow-y-auto');
-        scrollContainers.forEach((scrollContainer) => {
+      // Only apply this logic if the document hasn't changed (e.g., purely a selection change like Ctrl+A)
+      // or if it's explicitly flagged, to avoid layout thrashing (synchronous reflows) on every single keystroke.
+      if (transaction.selectionSet && !transaction.docChanged && !callbacksRef.current.typewriterMode) {
+        const scrollContainer = document.querySelector('.kgv-scroll');
+        if (scrollContainer) {
           const prevScroll = scrollContainer.scrollTop;
           requestAnimationFrame(() => {
             // Restore scroll position to prevent dramatic jumps on selection / Select All
@@ -126,7 +126,7 @@ function Editor({
               scrollContainer.scrollTop = prevScroll;
             }
           });
-        });
+        }
       }
     },
     editorProps: {
