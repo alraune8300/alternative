@@ -1,17 +1,11 @@
 const fs = require('fs');
-
-const missingCode = `
-  const [projects, setProjects] = useState<Project[]>([]);
-  const activeProjects = projects.filter(p => !p.isDeleted);
-  const trashedProjects = projects.filter(p => p.isDeleted);
-  const activeFolders = folders.filter(f => !f.isDeleted);
-`;
-
 let code = fs.readFileSync('src/WelcomeScreen.tsx', 'utf8');
 
-// replace "const [folders, setFolders] = useState<Folder[]>([]);"
-// with missingCode + "  const [folders, setFolders] = useState<Folder[]>([]);"
+code = code.replace(/setTimeGreeting\('Good morning'\);/, "setTimeGreeting(t(lang, 'goodMorning') || 'Good morning');");
+code = code.replace(/setTimeGreeting\('Good afternoon'\);/, "setTimeGreeting(t(lang, 'goodAfternoon') || 'Good afternoon');");
+code = code.replace(/setTimeGreeting\('Good evening'\);/, "setTimeGreeting(t(lang, 'goodEvening') || 'Good evening');");
 
-code = code.replace("const [folders, setFolders] = useState<Folder[]>([]);", missingCode + "  const [folders, setFolders] = useState<Folder[]>([]);");
+// The useEffect deps list is line 94 `  }, []);` right after the setTimeGreeting block.
+code = code.replace(/set([A-Za-z]+)\(t\(lang,\s*'goodEvening'\)\s*\|\|\s*'Good evening'\);\n  }, \[\]\);/, "set$1(t(lang, 'goodEvening') || 'Good evening');\n  }, [lang]);");
 
 fs.writeFileSync('src/WelcomeScreen.tsx', code);

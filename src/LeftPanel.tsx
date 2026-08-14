@@ -4,13 +4,25 @@ import { Lang, t as i18nT } from './i18n'
 import { Home, Folder as FolderIcon, Edit2, FileText, Trash2, ChevronDown, RotateCcw, X, MoreHorizontal, Upload, Plus } from 'lucide-react'
 import { importJsonBackupFile } from './fileHandlers'
 
-function timeSince(date: Date): string {
+function timeSince(date: Date, lang: Lang): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (seconds < 10) return 'just now'
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  return `${Math.floor(minutes / 60)}h ago`
+  if (seconds < 10) return i18nT(lang, 'justNow') || 'just now'
+  
+  try {
+    const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto', style: 'short' });
+    if (seconds < 60) return rtf.format(-seconds, 'second');
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return rtf.format(-minutes, 'minute');
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return rtf.format(-hours, 'hour');
+    const days = Math.floor(hours / 24);
+    return rtf.format(-days, 'day');
+  } catch {
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    return `${Math.floor(minutes / 60)}h ago`;
+  }
 }
 
 function LeftPanel(props: Record<string, unknown>) {
@@ -149,7 +161,7 @@ function LeftPanel(props: Record<string, unknown>) {
 
   const syncDotColor = { saved: '#4caf72', saving: '#f0a030', unsaved: c.textFaint, error: '#e05050' }[syncStatus]
   const syncLabel = {
-    saved: `${t(lang, 'saved')} ${timeSince(lastSaved)}`,
+    saved: `${t(lang, 'saved')} ${timeSince(lastSaved, lang)}`,
     saving: t(lang, 'saving'),
     unsaved: t(lang, 'unsaved'),
     error: t(lang, 'saveError'),
@@ -235,7 +247,7 @@ function LeftPanel(props: Record<string, unknown>) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: c.textFaint }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            <span style={{ fontSize: '0.65rem', fontFamily: uiFont }}>{timeSince(new Date(page.updatedAt || Date.now()))}</span>
+            <span style={{ fontSize: '0.65rem', fontFamily: uiFont }}>{timeSince(new Date(page.updatedAt || Date.now()), lang)}</span>
           </div>
           <div style={{ width: 16, height: 16, borderRadius: '50%', background: c.accent, opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.5rem', fontWeight: 'bold' }}>
             A
@@ -332,7 +344,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = c.accentLight)}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <FileText size={12} /> New Document
+                      <FileText size={12} /> {t(lang, 'newDocument')?.replace('+', '').trim() || 'New Document'}
                     </button>
                     <div style={{ height: 1, background: c.borderFaint, margin: '2px 0' }} />
                     <button
@@ -341,7 +353,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = c.accentLight)}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <Edit2 size={12} /> Rename
+                      <Edit2 size={12} /> {t(lang, 'rename')}
                     </button>
                     <button
                       onClick={e => { e.stopPropagation(); onDeleteFolder(folder.id); setFolderMenuOpenId(null); }}
@@ -349,7 +361,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = c.isDark ? 'rgba(224,80,80,0.15)' : 'rgba(224,80,80,0.08)')}
                       onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <Trash2 size={12} /> Delete
+                      <Trash2 size={12} /> {t(lang, 'delete')}
                     </button>
                   </div>
                 )}
@@ -378,7 +390,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
                   fontFamily: uiFont, fontSize: '0.68rem', color: c.textFaint, fontStyle: 'italic',
                 }}
               >
-                Drop files here
+                {t(lang, 'dropFilesHere')}
               </div>
             )}
           </div>
@@ -414,7 +426,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
               borderRadius: 6, margin: '2px 6px', transition: 'background 0.1s',
             }}
           >
-            {isDraftSection ? 'No drafts yet. Click + to start one.' : 'No pages yet. Click + to create one.'}
+            {isDraftSection ? t(lang, 'noDraftsYet') : t(lang, 'noPagesYet')}
           </div>
         ) : (
           <div
@@ -564,7 +576,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <FileText size={16} color={c.textMuted} />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: c.text, fontFamily: uiFont, letterSpacing: '0.05em' }}>Pages</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: c.text, fontFamily: uiFont, letterSpacing: '0.05em' }}>{t(lang, 'pages')}</span>
             </div>
             <button 
               onClick={() => { setActiveTab('pages'); onNewPage(false); }} 
@@ -581,7 +593,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
-               <span style={{ fontSize: '0.9rem', fontWeight: 600, color: c.text, fontFamily: uiFont, letterSpacing: '0.05em' }}>Drafts</span>
+               <span style={{ fontSize: '0.9rem', fontWeight: 600, color: c.text, fontFamily: uiFont, letterSpacing: '0.05em' }}>{t(lang, 'drafts')}</span>
              </div>
              <button 
                onClick={() => { setActiveTab('drafts'); onNewPage(true); }} 
@@ -613,14 +625,14 @@ const renderFolder = (folder: Folder, depth = 0) => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
             </svg>
-            Cloud Save & Sync
+            {t(lang, 'cloudSaveSync') || 'Cloud Save & Sync'}
           </button>
         )}
         
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button onClick={() => setBinOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textFaint, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} title="Bin">
-              <Trash2 size={16} /> BIN
+              <Trash2 size={16} /> {t(lang, 'bin')?.toUpperCase() || 'BIN'}
             </button>
           </div>
           
@@ -636,21 +648,21 @@ const renderFolder = (folder: Folder, depth = 0) => {
       {binOpen && (
         <div style={{ position: 'absolute', bottom: 64, left: 16, width: 248, background: c.panel, border: `1px solid ${c.border}`, borderRadius: 12, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: `1px solid ${c.borderFaint}`, paddingBottom: 8 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bin</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t(lang, 'bin')}</span>
             {bin.length > 0 && (
-              <button onClick={onEmptyBin} style={{ fontSize: '0.7rem', color: '#e05050', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Empty All</button>
+              <button onClick={onEmptyBin} style={{ fontSize: '0.7rem', color: '#e05050', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>{t(lang, 'emptyBin') || 'Empty All'}</button>
             )}
           </div>
           {bin.length === 0 ? (
-            <div style={{ fontSize: '0.8rem', color: c.textFaint, textAlign: 'center', padding: '16px 0' }}>No deleted items</div>
+            <div style={{ fontSize: '0.8rem', color: c.textFaint, textAlign: 'center', padding: '16px 0' }}>{t(lang, 'noDeletedItems') || 'No deleted items'}</div>
           ) : (
             <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {bin.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px', background: c.surface, borderRadius: 6 }}>
                   <span style={{ fontSize: '0.8rem', color: c.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, paddingRight: 8 }}>{p.title}</span>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => onRestorePage(p.id)} style={{ padding: 4, background: c.accentLight, color: c.accent, borderRadius: 4, border: 'none', cursor: 'pointer' }} title="Restore"><RotateCcw size={12} /></button>
-                    <button onClick={() => onPermanentDelete(p.id)} style={{ padding: 4, background: 'rgba(224, 80, 80, 0.1)', color: '#e05050', borderRadius: 4, border: 'none', cursor: 'pointer' }} title="Delete Forever"><Trash2 size={12} /></button>
+                    <button onClick={() => onRestorePage(p.id)} style={{ padding: 4, background: c.accentLight, color: c.accent, borderRadius: 4, border: 'none', cursor: 'pointer' }} title={t(lang, 'restore') || 'Restore'}><RotateCcw size={12} /></button>
+                    <button onClick={() => onPermanentDelete(p.id)} style={{ padding: 4, background: 'rgba(224, 80, 80, 0.1)', color: '#e05050', borderRadius: 4, border: 'none', cursor: 'pointer' }} title={t(lang, 'deleteForever') || 'Delete Forever'}><Trash2 size={12} /></button>
                   </div>
                 </div>
               ))}

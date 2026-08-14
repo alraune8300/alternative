@@ -1430,6 +1430,7 @@ export default function App() {
           onSelectTheme={handleSelectTheme}
           uiFont={uiFont}
           lang={lang}
+          onChangeLang={handleSelectLang}
           onEmptyAllTrash={emptyAllTrash}
           refreshTrigger={refreshTrigger}
           onOpenGithubCloudSave={handleOpenGithubCloudSave}
@@ -1465,6 +1466,7 @@ export default function App() {
           isOpen={githubModalOpen}
           onClose={() => setGithubModalOpen(false)}
           lang={lang}
+          onChangeLang={handleSelectLang}
           uiFont={uiFont}
           theme={theme}
           onDataRestored={async () => {
@@ -1525,6 +1527,7 @@ export default function App() {
           onSelectTheme={handleSelectTheme}
           uiFont={uiFont}
           lang={lang}
+          onChangeLang={handleSelectLang}
           t={t}
           sidebarOpen={sidebarOpen}
           onSelectProject={handleSelectProject}
@@ -1716,7 +1719,7 @@ export default function App() {
               className="text-xs px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm backdrop-blur-md transition-all hover:scale-105 cursor-pointer"
               style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
             >
-              <span>Show Format Ribbon</span>
+              <span>{t(settings.language, 'showFormatRibbon')}</span>
             </button>
           </div>
         )}
@@ -1954,6 +1957,7 @@ export default function App() {
           customFont={customFont}
           customFonts={customFonts}
           lang={lang}
+          onChangeLang={handleSelectLang}
           t={t}
           wordCount={wordCount}
           charCount={charCount}
@@ -2133,11 +2137,11 @@ export default function App() {
               type="button"
               onClick={handleExitFocusOrPreview}
               className="px-2.5 py-1 text-xs font-semibold rounded-full text-red-400 hover:text-red-300 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer shrink-0 flex items-center gap-1"
-              title={isFocusMode ? "Thoát chế độ tập trung" : "Thoát chế độ xem trước"}
+              title={isFocusMode ? t(settings.language, "exitFocusMode") : t(settings.language, "exitPreviewMode")}
               aria-label="Exit Mode"
             >
               <X size={13} className="text-red-400" />
-              <span>Thoát</span>
+              <span>{t(settings.language, 'exit')}</span>
             </button>
           </div>
         </div>
@@ -2148,6 +2152,7 @@ export default function App() {
         isOpen={githubModalOpen}
         onClose={() => setGithubModalOpen(false)}
         lang={lang}
+          onChangeLang={handleSelectLang}
         uiFont={uiFont}
         theme={theme}
         onDataRestored={async () => {

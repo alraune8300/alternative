@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, FolderOpen, FolderInput, Plus, Download, Upload, Grid, List, Trash2, Edit2, Check, X, RotateCcw, Home, AlertCircle, Search, ArrowUpDown, FileJson, Clock } from 'lucide-react';
-import { format } from 'date-fns';
+
 import { Project, ThemeColors, Folder } from './types';
 import { db, getAllProjectsFromDB, saveProjectToDB, deleteProjectFromDB, getAllFoldersFromDB, saveFolderToDB } from './db';
 import { exportToJsonBackup, importJsonBackupFile } from './fileHandlers';
@@ -14,6 +14,7 @@ interface WelcomeScreenProps {
   onSelectTheme?: (themeId: string) => void;
   uiFont: string;
   lang?: Lang;
+  onChangeLang?: (l: Lang) => void;
   onOpenProject: (projectId: string, pageId?: string) => void;
   onImport: () => void;
   onExportAll: () => void;
@@ -23,9 +24,21 @@ interface WelcomeScreenProps {
   refreshTrigger?: number;
 }
 
+const LANGUAGES: {value: Lang, label: string}[] = [
+  {value: 'en', label: 'English'},
+  {value: 'vi', label: 'Tiếng Việt'},
+  {value: 'fr', label: 'Français'},
+  {value: 'de', label: 'Deutsch'},
+  {value: 'it', label: 'Italiano'},
+  {value: 'es', label: 'Español'},
+  {value: 'ko', label: '한국어'},
+  {value: 'zh', label: '中文'},
+  {value: 'ja', label: '日本語'}
+];
+
 type SortOption = 'updated' | 'newest' | 'oldest' | 'nameAZ' | 'nameZA' | 'pages';
 
-function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, onEmptyAllTrash, onReloadProjects, refreshTrigger }: WelcomeScreenProps) {
+function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', onChangeLang, onOpenProject, onImport, onExportAll, onOpenGithubCloudSave, onEmptyAllTrash, onReloadProjects, refreshTrigger }: WelcomeScreenProps) {
     
   const [projects, setProjects] = useState<Project[]>([]);
   const activeProjects = projects.filter(p => !p.isDeleted);
@@ -88,10 +101,10 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
 
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) setTimeGreeting('Good morning');
-    else if (hour < 18) setTimeGreeting('Good afternoon');
-    else setTimeGreeting('Good evening');
-  }, []);
+    if (hour < 12) setTimeGreeting(t(lang, 'goodMorning') || 'Good morning');
+    else if (hour < 18) setTimeGreeting(t(lang, 'goodAfternoon') || 'Good afternoon');
+    else setTimeGreeting(t(lang, 'goodEvening') || 'Good evening');
+  }, [lang]);
 
   const handleMoveProject = async (folderId: string | null, targetProjId?: string) => {
     const pId = targetProjId || movingProjectId;
@@ -218,7 +231,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
   const handleNewProject = async () => {
     const newProj: Project = {
       id: 'proj-' + Date.now(),
-      title: 'New Project',
+      title: t(lang, 'newProject') || 'New Project',
       pages: [{
         id: 'page-' + Date.now(),
         title: 'Untitled Document',
@@ -244,7 +257,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
   const handleNewFolder = async () => {
     const newFld: Folder = {
       id: 'fld-' + Date.now(),
-      name: 'New Folder',
+      name: t(lang, 'newFolder') || 'New Folder',
       parentId: currentFolderId || undefined,
       isDeleted: false,
       createdAt: new Date().toISOString(),
@@ -556,8 +569,20 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
           </div>
           
           {/* Header Right Actions */}
-          {tab === 'active' && (
-            <div className="flex items-center gap-2 pb-1">
+          <div className="flex flex-wrap items-center gap-2 pb-1">
+            {onChangeLang && (
+              <div className="flex items-center">
+                <CustomSelect
+                  value={lang}
+                  onChange={(val) => onChangeLang(val)}
+                  theme={theme}
+                  buttonClassName="bg-transparent text-xs outline-none font-medium flex items-center gap-1 border rounded-full px-3 py-1.5 transition-all cursor-pointer"
+                  options={LANGUAGES}
+                />
+              </div>
+            )}
+            {tab === 'active' && (
+              <div className="flex items-center gap-2">
                {/* Data (Import/Export) Dropdown */}
                <div className="relative">
                   <button 
@@ -572,7 +597,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                   >
                     <Upload size={16} strokeWidth={2} />
-                    <span className="hidden sm:inline">Import</span>
+                    <span className="hidden sm:inline">{t(lang, 'importDocument')}</span>
                   </button>
                   {isDataMenuOpen && (
                     <div 
@@ -622,7 +647,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                     onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
                   >
                     <Plus size={16} strokeWidth={2} />
-                    <span>New</span>
+                    <span>{t(lang, 'new')}</span>
                   </button>
                   {isNewMenuOpen && (
                     <div 
@@ -634,7 +659,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                       </div>
                       <button onClick={() => { handleNewProject(); setIsNewMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                         <FileText size={16} style={{ color: theme.textMuted }} />
-                        <span>Blank document</span>
+                        <span>{t(lang, 'newDocument').replace('+', '').trim()}</span>
                       </button>
                       
                       <div className="h-[1px] w-full my-1" style={{ backgroundColor: theme.borderFaint }} />
@@ -644,13 +669,14 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                       </div>
                       <button onClick={() => { handleNewFolder(); setIsNewMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm transition-colors" style={{ color: theme.text }} onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.panel} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                         <FolderOpen size={16} style={{ color: theme.textMuted }} />
-                        <span>New folder</span>
+                        <span>{t(lang, 'newFolder')}</span>
                       </button>
                     </div>
                   )}
                 </div>
             </div>
           )}
+        </div>
         </div>
 
         {/* Quick Actions & Navigation Toolbar */}
@@ -736,7 +762,6 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
             </div>
           </div>
         </div>
-
         {/* Breadcrumbs */}
         {tab === 'active' && currentFolderId !== null && (
           <div className="w-full max-w-5xl mb-4 flex items-center gap-2 text-sm" style={{ color: theme.textMuted }}>
@@ -867,7 +892,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                                 <button onClick={(e) => handleStartEditFolder(folder.id, folder.name, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Rename">
                                   <Edit2 size={14} />
                                 </button>
-                                <button onClick={(e) => handleSoftDeleteFolder(folder, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Move to Trash">
+                                <button onClick={(e) => handleSoftDeleteFolder(folder, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title={t(lang, 'moveToTrash')}>
                                   <Trash2 size={14} />
                                 </button>
                               </>
@@ -876,7 +901,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                                 <button onClick={(e) => handleRestoreFolder(folder, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Restore">
                                   <RotateCcw size={14} />
                                 </button>
-                                <button onClick={(e) => promptHardDelete('folder', folder.id, folder.name, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Permanently Delete">
+                                <button onClick={(e) => promptHardDelete('folder', folder.id, folder.name, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title={t(lang, 'deleteForever')}>
                                   <Trash2 size={14} />
                                 </button>
                               </>
@@ -885,7 +910,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                         </div>
                         <div className="flex items-center gap-1.5 text-[0.7rem] font-light" style={{ color: theme.textMuted }}>
                           <Clock size={12} strokeWidth={1.5} />
-                          <span>{folder.created_at ? format(new Date(folder.created_at), 'MMM d, yyyy') : 'Recently'}</span>
+                          <span>{folder.created_at ? Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(folder.created_at)) : t(lang, 'recently') || 'Recently'}</span>
                         </div>
                       </div>
                     </div>
@@ -948,19 +973,19 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                   <div className="absolute top-1/2 -translate-y-1/2 right-3 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {tab === 'active' ? (
                       <>
-                        <button onClick={(e) => handleStartEditFolder(folder.id, folder.name, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Rename">
+                        <button onClick={(e) => handleStartEditFolder(folder.id, folder.name, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title={t(lang, 'rename')}>
                           <Edit2 size={13} />
                         </button>
-                        <button onClick={(e) => handleSoftDeleteFolder(folder, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Move to Trash">
+                        <button onClick={(e) => handleSoftDeleteFolder(folder, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title={t(lang, 'moveToTrash')}>
                           <Trash2 size={13} />
                         </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={(e) => handleRestoreFolder(folder, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title="Restore">
+                        <button onClick={(e) => handleRestoreFolder(folder, e)} className="p-1.5 rounded-md hover:bg-neutral-500/10 transition-colors cursor-pointer" style={{ color: theme.textMuted }} title={t(lang, 'restore')}>
                           <RotateCcw size={13} />
                         </button>
-                        <button onClick={(e) => promptHardDelete('folder', folder.id, folder.name, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title="Permanently Delete">
+                        <button onClick={(e) => promptHardDelete('folder', folder.id, folder.name, e)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer" title={t(lang, 'deleteForever')}>
                           <Trash2 size={13} />
                         </button>
                       </>
@@ -1025,7 +1050,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                   <div className="mt-3 flex items-center gap-2 text-[10px] font-light tracking-wider uppercase ml-6" style={{ color: theme.textFaint }}>
                     <span>{project.pages.length} {project.pages.length === 1 ? t(lang, 'pageSingular') : t(lang, 'pagePlural')}</span>
                     <span>•</span>
-                    <span>{format(new Date(project.lastModified || project.createdAt || Date.now()), 'MMM d, yyyy')}</span>
+                    <span>{Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(project.lastModified || project.createdAt || Date.now()))}</span>
                   </div>
 
 

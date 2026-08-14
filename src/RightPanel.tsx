@@ -317,7 +317,7 @@ function RightPanel(props: Record<string, unknown>) {
 <meta charset="utf-8">
 <title>${title}</title>
 <!--[if gte mso 9]>
-<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
+<xml><w:WordDocument><w:View>{t(lang, 'printDoc')}</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
 <![endif]-->
 <style>
   body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.6; margin: 2cm; }
@@ -676,7 +676,7 @@ ${content.split('\n\n').map(para => {
                   {numInput(formatState.paraSpacing, 0, 4, 0.1, 'em', v => onFormatChange({ paraSpacing: v }), 1)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: uiFont, fontSize: '0.74rem', color: c.text }}>First-line indent</span>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.74rem', color: c.text }}>{t(lang, 'firstLineIndent')}</span>
                   <button onClick={() => onFormatChange({ firstLineIndent: !formatState.firstLineIndent })}
                     style={{ width: 36, height: 20, borderRadius: 10, background: formatState.firstLineIndent ? c.accent : c.border, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
                     <div style={{ position: 'absolute', top: 2, left: formatState.firstLineIndent ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
@@ -793,9 +793,9 @@ ${content.split('\n\n').map(para => {
                 {title}
               </div>
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.accent }}>{wordCount.toLocaleString()} words</span>
-                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.textFaint }}>{charCount.toLocaleString()} chars</span>
-                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.textFaint }}>~{readMin} min read</span>
+                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.accent }}>{wordCount.toLocaleString()} {t(lang, 'words')}</span>
+                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.textFaint }}>{charCount.toLocaleString()} {t(lang, 'chars')}</span>
+                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.textFaint }}>~{readMin} {t(lang, 'readTime') || 'min read'}</span>
               </div>
             </div>
 
@@ -815,7 +815,7 @@ ${content.split('\n\n').map(para => {
                 }}
               >
                 <Upload size={16} style={{ color: c.accent }} />
-                <span>Import File (DOCX, PDF, MD, HTML, TXT)</span>
+                <span>{t(lang, 'importFile')}</span>
               </button>
             </div>
 
@@ -835,7 +835,7 @@ ${content.split('\n\n').map(para => {
                   }}
                 >
                   {copied ? <Check size={15} /> : <Copy size={15} />}
-                  <span>{copied ? 'Copied to clipboard' : 'Copy to Clipboard'}</span>
+                  <span>{copied ? t(lang, 'copied') : (t(lang, 'copyToClipboard') || 'Copy to Clipboard')}</span>
                 </button>
 
                 <button onClick={() => {
@@ -852,7 +852,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <FileDown size={15} style={{ color: c.accent }} />
-                  <span>Export as PDF</span>
+                  <span>{t(lang, 'exportPdf')}</span>
                 </button>
 
                 <button onClick={() => {
@@ -869,7 +869,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <FileSpreadsheet size={15} style={{ color: c.accent }} />
-                  <span>Export as DOCX (Word)</span>
+                  <span>{t(lang, 'exportDocx')}</span>
                 </button>
 
                 <button onClick={() => {
@@ -886,7 +886,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <FileCode size={15} style={{ color: c.accent }} />
-                  <span>Export as HTML</span>
+                  <span>{t(lang, 'exportHtml')}</span>
                 </button>
 
                 <button onClick={() => {
@@ -903,7 +903,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <FileText size={15} style={{ color: c.accent }} />
-                  <span>Export as Markdown (.md)</span>
+                  <span>{t(lang, 'exportMd')}</span>
                 </button>
 
                 <button onClick={() => handleDownload('txt')}
@@ -917,7 +917,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <FileText size={15} style={{ color: c.accent }} />
-                  <span>Export as Plain Text (.txt)</span>
+                  <span>{t(lang, 'exportTxt')}</span>
                 </button>
 
                 <button onClick={() => {
@@ -934,7 +934,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <Download size={15} style={{ color: c.accent }} />
-                  <span>Backup Workspace (JSON)</span>
+                  <span>{t(lang, 'backupJson')}</span>
                 </button>
 
                 <button onClick={handlePrintPDF}
@@ -948,7 +948,7 @@ ${content.split('\n\n').map(para => {
                   onMouseLeave={e => (e.currentTarget.style.borderColor = c.border)}
                 >
                   <Printer size={15} style={{ color: c.accent }} />
-                  <span>Print Document</span>
+                  <span>{t(lang, 'printDoc')}</span>
                 </button>
               </div>
             </div>
@@ -988,7 +988,7 @@ ${content.split('\n\n').map(para => {
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 {timerDone ? (
-                  <span style={{ fontFamily: uiFont, fontSize: '0.9rem', color: '#4caf72', fontWeight: 600 }}>Done</span>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.9rem', color: '#4caf72', fontWeight: 600 }}>{t(lang, 'done')}</span>
                 ) : (
                   <span style={{ fontFamily: monoFont, fontSize: '1.38rem', fontWeight: 500, color: c.text, letterSpacing: '0.02em' }}>
                     {String(timerMin).padStart(2, '0')}:{String(timerSec).padStart(2, '0')}
@@ -1045,7 +1045,7 @@ ${content.split('\n\n').map(para => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ fontFamily: uiFont, fontSize: '0.76rem', color: c.textMuted }}>Duration</span>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.76rem', color: c.textMuted }}>{t(lang, 'duration')}</span>
                   <input
                     type="number" min={1} max={120} value={timerSet}
                     onChange={e => onTimerSetChange(Math.max(1, Math.min(120, Number(e.target.value))))}
@@ -1056,7 +1056,7 @@ ${content.split('\n\n').map(para => {
                       background: c.surface, textAlign: 'center', outline: 'none',
                     }}
                   />
-                  <span style={{ fontFamily: uiFont, fontSize: '0.76rem', color: c.textMuted }}>min</span>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.76rem', color: c.textMuted }}>{t(lang, 'min')}</span>
                 </div>
 
                 {timerOn && (
@@ -1307,7 +1307,7 @@ ${content.split('\n\n').map(para => {
               >
                 <div style={{ fontFamily: uiFont, fontSize: '0.74rem', color: c.textMuted, lineHeight: 1.5 }}>
                   Drop font file here<br />
-                  <span style={{ fontSize: '0.66rem', color: c.textFaint }}>or click to browse</span>
+                  <span style={{ fontSize: '0.66rem', color: c.textFaint }}>{t(lang, 'clickToBrowse')}</span>
                 </div>
               </div>
               <input
@@ -1427,6 +1427,41 @@ ${content.split('\n\n').map(para => {
               </div>
             </div>
 
+            <div style={{ marginTop: 8 }}>
+              <SectionLabel label={t(lang, 'advancedCustomTheme')} uiFont={uiFont} c={c} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { label: t(lang, 'bgGradient'), key: 'bg' },
+                  { label: t(lang, 'textColor'), key: 'text' },
+                  { label: t(lang, 'accentColor'), key: 'accent' }
+                ].map(({ label, key }) => (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: '0.75rem', color: c.textMuted }}>{label}</span>
+                    <input
+                      type="text"
+                      value={(props.customTheme as any)?.[key] || ''}
+                      onChange={e => {
+                        onPresetSelect(null);
+                        if (props.onCustomThemeChange) {
+                          const currentCustom = (props.customTheme as any) || { bg: '#ffffff', text: '#000000', accent: '#3b82f6' };
+                          (props.onCustomThemeChange as any)({
+                            ...currentCustom,
+                            [key]: e.target.value
+                          });
+                        }
+                      }}
+                      placeholder="#..."
+                      style={{
+                        width: 120, padding: '4px 6px', fontFamily: monoFont, fontSize: '0.7rem',
+                        color: c.text, background: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                        border: `1px solid ${c.borderFaint}`, borderRadius: 4, outline: 'none'
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div>
               <SectionLabel label={t(lang, 'themePresets')} uiFont={uiFont} c={c} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
@@ -1455,7 +1490,7 @@ ${content.split('\n\n').map(para => {
             </div>
 
             <div style={{ padding: '12px 0', borderTop: `1px solid ${c.borderFaint}`, textAlign: 'center' }}>
-              <span style={{ fontFamily: uiFont, fontSize: '0.66rem', color: c.textFaint }}>Prose · Writing app</span>
+              <span style={{ fontFamily: uiFont, fontSize: '0.66rem', color: c.textFaint }}>{t(lang, 'appName')}</span>
             </div>
           </div>
         )}
