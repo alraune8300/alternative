@@ -558,7 +558,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto w-full min-w-0" onClick={() => { setIsNewMenuOpen(false); setIsDataMenuOpen(false); }}>
         {/* Header / Greeting */}
-        <div className="w-full max-w-5xl flex flex-col md:flex-row items-start md:items-end justify-between mt-4 mb-10 gap-4 animate-fade-in-up relative z-20">
+        <div className="w-full max-w-5xl flex flex-col md:flex-row items-start md:items-end justify-between mt-4 mb-10 gap-4 animate-fade-in-up relative z-40">
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl md:text-5xl tracking-tight" style={{ color: theme.text, fontFamily: `'${uiFont}', Georgia, serif` }}>
               {timeGreeting},
