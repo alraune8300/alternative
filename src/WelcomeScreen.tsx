@@ -556,7 +556,11 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto w-full min-w-0" onClick={() => { setIsNewMenuOpen(false); setIsDataMenuOpen(false); }}>
+      <div 
+        className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto w-full min-w-0" 
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        onClick={() => { setIsNewMenuOpen(false); setIsDataMenuOpen(false); }}
+      >
         {/* Header / Greeting */}
         <div className="w-full max-w-5xl flex flex-col md:flex-row items-start md:items-end justify-between mt-4 mb-10 gap-4 animate-fade-in-up relative z-40">
           <div className="flex flex-col gap-1">
@@ -1090,8 +1094,9 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
       {/* Toast Notification */}
       {toastMsg && (
         <div 
-          className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium flex items-center gap-2 animate-fade-in-up"
+          className="fixed right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium flex items-center gap-2 animate-fade-in-up"
           style={{ 
+            bottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
             backgroundColor: toastMsg.type === 'success' ? (theme.isDark ? '#064e3b' : '#ecfdf5') : (theme.isDark ? '#7f1d1d' : '#fef2f2'),
             borderColor: toastMsg.type === 'success' ? '#10b981' : '#ef4444',
             color: toastMsg.type === 'success' ? (theme.isDark ? '#a7f3d0' : '#065f46') : (theme.isDark ? '#fecaca' : '#991b1b')

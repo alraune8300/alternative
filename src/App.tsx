@@ -164,6 +164,51 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, [sidebarOpen, rightOpen]);
 
+  // --- Android Navigation Gesture (Back Button) Support ---
+  useEffect(() => {
+    if (isWorkspaceActive) {
+      window.history.pushState({ workspace: true }, '');
+    }
+  }, [isWorkspaceActive]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      let handled = false;
+      
+      setGithubModalOpen(prev => { if (prev) { handled = true; return false; } return prev; });
+      if (handled) { window.history.pushState({ workspace: true }, ''); return; }
+      
+      setFontExplorerOpen(prev => { if (prev) { handled = true; return false; } return prev; });
+      if (handled) { window.history.pushState({ workspace: true }, ''); return; }
+      
+      setIsFocusMode(prev => { if (prev) { handled = true; return false; } return prev; });
+      if (handled) { window.history.pushState({ workspace: true }, ''); return; }
+      
+      setIsPreviewMode(prev => { if (prev) { handled = true; return false; } return prev; });
+      if (handled) { window.history.pushState({ workspace: true }, ''); return; }
+      
+      if (window.innerWidth < 768) {
+        setRightOpen(prev => { if (prev) { handled = true; return false; } return prev; });
+        if (handled) { window.history.pushState({ workspace: true }, ''); return; }
+        
+        setSidebarOpen(prev => { if (prev) { handled = true; return false; } return prev; });
+        if (handled) { window.history.pushState({ workspace: true }, ''); return; }
+      }
+
+      setIsWorkspaceActive(prev => {
+        if (prev) {
+          handled = true;
+          return false;
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+  // --------------------------------------------------------
+
   useEffect(() => {
     setZoomInput(String(zoomPercent));
   }, [zoomPercent]);
@@ -1521,7 +1566,12 @@ export default function App() {
           projects={projects}
           activeProjectId={activeProjectId}
           activePageId={activePageId}
-          onGoHome={() => setIsWorkspaceActive(false)}
+          onGoHome={() => {
+            setIsWorkspaceActive(false);
+            if (window.history.state?.workspace) {
+              window.history.back();
+            }
+          }}
           theme={theme}
           themeMode={themeMode}
           onSelectTheme={handleSelectTheme}
@@ -2045,7 +2095,10 @@ export default function App() {
 
 
       {!sidebarOpen && (
-        <div className="absolute bottom-4 left-5 z-20 text-xs pointer-events-none" style={{ color: theme.faint }}>
+        <div 
+          className="absolute left-5 z-20 text-xs pointer-events-none" 
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))', color: theme.faint }}
+        >
           {saving ? (t.saving || 'Saving...') : (t.saved || 'Saved')}
         </div>
       )}

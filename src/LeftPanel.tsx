@@ -646,7 +646,7 @@ const renderFolder = (folder: Folder, depth = 0) => {
       
       {/* Bin Overlay */}
       {binOpen && (
-        <div style={{ position: 'absolute', bottom: 64, left: 16, width: 248, background: c.panel, border: `1px solid ${c.border}`, borderRadius: 12, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 10 }}>
+        <div style={{ position: 'absolute', bottom: 'calc(64px + env(safe-area-inset-bottom))', left: 16, width: 248, background: c.panel, border: `1px solid ${c.border}`, borderRadius: 12, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: `1px solid ${c.borderFaint}`, paddingBottom: 8 }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t(lang, 'bin')}</span>
             {bin.length > 0 && (
