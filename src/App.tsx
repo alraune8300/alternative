@@ -7,7 +7,7 @@ import { getDict, type Dict } from './i18n';
 import { exportTxt, exportJson } from './exportUtils';
 import { importFile, exportToPdf, exportToDocx, exportToHtmlFile, exportToMarkdownFile, exportToJsonBackup } from './fileHandlers';
 import { saveApiKey, loadApiKey, injectGoogleFont, reinjectSavedFonts } from './googleFontsApi';
-import { Minimize2, X, Plus, Minus, ZoomIn, Eye, Maximize2 } from 'lucide-react';
+import { Minimize2, X, Plus, Minus, ZoomIn, Eye, Maximize2, PanelLeft, Settings } from 'lucide-react';
 import { type Editor as TiptapEditorType } from '@tiptap/react';
 import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
@@ -1192,7 +1192,7 @@ export default function App() {
   const handleSelectDocFont = useCallback((family: string) => {
     setDocFont(family);
     LS.set('kgv-font', family);
-    setFormatState(prev => ({ ...prev, fontFam: family, headingFontFam: family }));
+    setFormatState(prev => ({ ...prev, fontFam: family }));
   }, []);
   const handleSelectUiFont = useCallback((family: string) => { setUiFont(family); LS.set('kgv-ui-font', family); }, []);
   const handleSelectLang = useCallback((l: Lang) => {
@@ -1240,7 +1240,7 @@ export default function App() {
 
       setDocFont(family);
       LS.set('kgv-font', family);
-      setFormatState((prev) => ({ ...prev, fontFam: family, headingFontFam: family }));
+      setFormatState((prev) => ({ ...prev, fontFam: family }));
 
       window.dispatchEvent(new CustomEvent('kgv-docfont', { detail: family }));
       window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: family }));
@@ -1607,9 +1607,45 @@ export default function App() {
 
       {/* Main Workspace Area with fluid flex expansion & smooth resize transition */}
       <main className="flex-1 min-w-0 h-full overflow-hidden flex flex-col transition-all duration-300 ease-in-out relative">
+        
+        {/* Floating Panel Toggles */}
+        {!isFocusMode && !isPreviewMode && (
+          <>
+            <button
+              onClick={() => setSidebarOpen(v => !v)}
+              className="absolute top-4 z-50 p-2 rounded-lg transition-all hover:opacity-80 active:scale-95 shadow-sm backdrop-blur-md"
+              style={{
+                left: '16px',
+                backgroundColor: sidebarOpen ? theme.accentLight : theme.surface,
+                color: sidebarOpen ? theme.accent : theme.text,
+                border: `1px solid ${sidebarOpen ? theme.accent : theme.border}`
+              }}
+              title={sidebarOpen ? (t.collapse || 'Collapse Sidebar') : (t.openSidebar || 'Open Sidebar')}
+            >
+              <PanelLeft size={18} />
+            </button>
+
+            <button
+              onClick={() => {
+                if (rightOpen && rightPanelTab === 'settings') setRightOpen(false);
+                else { setRightPanelTab('settings'); setRightOpen(true); }
+              }}
+              className="absolute top-4 right-4 z-50 p-2 rounded-lg transition-all hover:opacity-80 active:scale-95 shadow-sm backdrop-blur-md"
+              style={{
+                backgroundColor: rightOpen ? theme.accentLight : theme.surface,
+                color: rightOpen ? theme.accent : theme.text,
+                border: `1px solid ${rightOpen ? theme.accent : theme.border}`
+              }}
+              title={t.settings || 'Toggle Settings'}
+            >
+              <Settings size={18} />
+            </button>
+          </>
+        )}
+
         {/* Document Title Header (Editable in standard mode, stylized book header in Preview mode) */}
         {!isFocusMode && !isPreviewMode && (
-          <div className="max-w-2xl mx-auto w-full px-6 md:px-8 pt-8 md:pt-10 transition-all duration-300 flex items-center justify-between">
+          <div className="max-w-2xl mx-auto w-full px-6 md:px-8 pt-14 md:pt-16 transition-all duration-300 flex items-center justify-between">
             <input
               value={activePage?.title || ''}
               onChange={(e) => {
@@ -1663,13 +1699,6 @@ export default function App() {
                 onSizeInput={(sz) => {
                   (editorInstance as TiptapEditorType)?.chain().focus().setFontSize(String(sz)).run();
                 }}
-                                                sidebarOpen={sidebarOpen}
-                onToggleSidebar={() => setSidebarOpen(v => !v)}
-                rightOpen={rightOpen}
-                onToggleSettings={() => {
-          if (rightOpen && rightPanelTab === 'settings') setRightOpen(false);
-          else { setRightPanelTab('settings'); setRightOpen(true); }
-        }}
         onOpenGithubCloudSave={handleOpenGithubCloudSave}
                 isFocusMode={isFocusMode}
                 onToggleFocusMode={handleToggleFocusMode}
@@ -2046,6 +2075,8 @@ export default function App() {
           onApplyToDoc={handleSelectDocFont}
           onAssignRole={(role, fontName) => {
             if (role === 'body') handleSelectDocFont(fontName);
+            else if (role === 'heading') setFormatState(prev => ({ ...prev, headingFontFam: fontName }));
+            else if (role === 'mono') setFormatState(prev => ({ ...prev, monoFontFam: fontName }));
             else if (role === 'ui') handleSelectUiFont(fontName);
             document.documentElement.style.setProperty(`--kgv-${role}-font`, fontName);
           }}

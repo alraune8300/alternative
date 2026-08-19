@@ -1203,7 +1203,7 @@ ${content.split('\n\n').map(para => {
               ))}
             </div>
 
-            <div>
+            <div style={{display: 'none'}}>
               <SectionLabel label="Available fonts" uiFont={uiFont} c={c} />
               {[
                 { group: 'Serif', fonts: SERIF_FONTS },
@@ -1256,7 +1256,7 @@ ${content.split('\n\n').map(para => {
               ))}
             </div>
 
-            <div>
+            <div style={{display: 'none'}}>
               <SectionLabel label={t(lang, 'browseGoogleFonts')} uiFont={uiFont} c={c} />
               <button
                 onClick={() => setShowGoogleFonts(v => !v)}
@@ -1281,11 +1281,67 @@ ${content.split('\n\n').map(para => {
                     }}
                     c={c}
                     uiFont={uiFont}
+                    onApplyToSelection={(name) => {
+                      window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: name }))
+                    }}
+                    onApplyToDoc={(name) => {
+                      onFontAssign('body', name)
+                    }}
+                    onApplyToUi={(name) => {
+                      onFontAssign('ui', name)
+                    }}
+                    onAssignRole={onFontAssign}
                   />
                 </div>
               )}
             </div>
 
+            <div>
+              <SectionLabel label="Font Manager" uiFont={uiFont} c={c} />
+              <div style={{ marginBottom: 16 }}>
+                <button
+                  onClick={() => setShowGoogleFonts(v => !v)}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 8,
+                    border: `1px solid ${c.border}`, background: c.surface,
+                    color: c.text, fontFamily: uiFont, fontSize: '0.85rem', fontWeight: 600,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = c.accent}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = c.border}
+                >
+                  <span style={{display:'flex', alignItems:'center', gap: 8}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+                    Browse Google Fonts
+                  </span>
+                  <span>{showGoogleFonts ? '▲' : '▼'}</span>
+                </button>
+                {showGoogleFonts && (
+                  <div style={{ marginTop: 8, border: `1px solid ${c.border}`, borderRadius: 8, overflow: 'hidden' }}>
+                    <GoogleFontsPanel
+                      onSelect={name => {
+                        if (onFontLoad) onFontLoad(name)
+                        onFontAssign(activeRole, name)
+                        setShowGoogleFonts(false)
+                      }}
+                      c={c}
+                      uiFont={uiFont}
+                      onApplyToSelection={(name) => {
+                        window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: name }))
+                      }}
+                      onApplyToDoc={(name) => {
+                        onFontAssign('body', name)
+                      }}
+                      onApplyToUi={(name) => {
+                        onFontAssign('ui', name)
+                      }}
+                      onAssignRole={onFontAssign}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
             <div>
               <SectionLabel label={t(lang, 'customFonts')} uiFont={uiFont} c={c} />
               <div

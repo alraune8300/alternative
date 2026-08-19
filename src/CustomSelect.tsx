@@ -24,6 +24,7 @@ interface CustomSelectProps {
   dropdownStyle?: React.CSSProperties;
   renderButtonContent?: (selectedOption: SelectOption | undefined) => React.ReactNode;
   onOpen?: () => void;
+  footerNode?: React.ReactNode;
 }
 
 export function CustomSelect({
@@ -37,7 +38,8 @@ export function CustomSelect({
   dropdownClassName = '',
   dropdownStyle = {},
   renderButtonContent,
-  onOpen
+  onOpen,
+  footerNode
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,6 +127,11 @@ export function CustomSelect({
               )}
             </div>
           ))}
+          {footerNode && (
+            <div className="flex-shrink-0 sticky bottom-0 border-t" style={{ backgroundColor: theme.surface, borderColor: theme.borderFaint }}>
+              {footerNode}
+            </div>
+          )}
         </div>
       )}
     </div>

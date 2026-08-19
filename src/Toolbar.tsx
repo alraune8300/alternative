@@ -13,6 +13,8 @@ import type { ThemeColors } from './types';
 import type { Dict } from './i18n';
 import { compressImage } from './imageUtils';
 import { CustomSelect } from './CustomSelect';
+import GoogleFontsPanel from './GoogleFontsPanel';
+import { injectGoogleFont } from './googleFontsApi';
 
 type Props = {
   editor: Editor;
@@ -25,10 +27,6 @@ type Props = {
     onFontChange: (family: string) => void;
   onSizeChange: (size: number) => void;
   onSizeInput: (size: number) => void;
-      sidebarOpen?: boolean;
-  onToggleSidebar?: () => void;
-  rightOpen?: boolean;
-  onToggleSettings?: () => void;
   isFocusMode?: boolean;
   onToggleFocusMode?: () => void;
   isPreviewMode?: boolean;
@@ -53,8 +51,7 @@ function Toolbar({
   editor, theme, uiFont, t,
   selectedFont, selectedSize, availableFonts,
   onFontChange, onSizeChange, onSizeInput,
-  sidebarOpen, onToggleSidebar,
-  rightOpen, onToggleSettings, isFocusMode, onToggleFocusMode,
+  isFocusMode, onToggleFocusMode,
   isPreviewMode, onTogglePreviewMode,
   typewriterMode, onToggleTypewriterMode,
   onUndo, onRedo, canUndo, canRedo,
@@ -65,6 +62,7 @@ function Toolbar({
 }: Props) {
   const [sizeInput, setSizeInput] = useState<string>(String(selectedSize));
   const [, forceUpdate] = useState({});
+  const [showGoogleFonts, setShowGoogleFonts] = useState(false);
 
   useEffect(() => {
     if (editor) {
@@ -107,8 +105,8 @@ function Toolbar({
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-lg transition-all hover:opacity-80 active:scale-95 cursor-pointer shrink-0 ${active ? 'kgv-track-active' : ''}`}
-      style={{ color: active ? undefined : theme.muted }}
+      className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-lg transition-all hover:opacity-80 active:scale-95 cursor-pointer shrink-0`}
+      style={{ backgroundColor: active ? theme.accentLight : "transparent", color: active ? theme.accent : theme.textMuted }}
       aria-label={label}
       title={label}
     >
@@ -145,18 +143,6 @@ function Toolbar({
       className="sticky top-0 z-10 flex items-center flex-nowrap md:flex-wrap overflow-x-auto md:overflow-x-visible scrollbar-none gap-1 px-4 md:pl-6 py-2 select-none"
       style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, fontFamily: `'${uiFont}', sans-serif` }}
     >
-      {onToggleSidebar && (
-        <>
-          <ToolBtn
-            onClick={onToggleSidebar}
-            icon={<PanelLeft size={16} />}
-            label={sidebarOpen ? (t.collapse || 'Collapse Sidebar') : (t.openSidebar || 'Open Sidebar')}
-            active={sidebarOpen}
-          />
-          <Divider />
-        </>
-      )}
-
       <button
         type="button"
         onMouseDown={e => e.preventDefault()}
@@ -201,6 +187,15 @@ function Toolbar({
             buttonClassName="text-xs py-1.5 px-2 rounded-md outline-none cursor-pointer mr-1 max-w-[140px] shrink-0"
             buttonStyle={{ backgroundColor: theme.isDark ? theme.surface : theme.accentSoft, color: theme.text, border: `1px solid ${theme.border}` }}
             dropdownClassName="w-56 mt-2"
+            footerNode={
+              <button
+                onClick={() => setShowGoogleFonts(true)}
+                className="w-full text-left px-4 py-2 text-xs font-semibold hover:opacity-80 transition-opacity"
+                style={{ color: theme.accent }}
+              >
+                {t.browseGoogleFonts || 'Browse Google Fonts...'}
+              </button>
+            }
           />
         );
       })()}
@@ -240,6 +235,28 @@ function Toolbar({
       <ToolBtn onClick={() => editor.chain().focus().toggleItalic().run()} icon={<Italic size={15} />} label={t.italic} active={editor.isActive('italic')} />
       <ToolBtn onClick={() => editor.chain().focus().toggleUnderline().run()} icon={<UnderlineIcon size={15} />} label={t.underline} active={editor.isActive('underline')} />
       <ToolBtn onClick={() => editor.chain().focus().toggleStrike().run()} icon={<Strikethrough size={15} />} label={t.strike} active={editor.isActive('strike')} />
+      {showGoogleFonts && (
+        <div className="absolute top-12 left-4 z-50 p-4 rounded-xl shadow-xl border w-[340px] max-h-[80vh] overflow-y-auto" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
+          <GoogleFontsPanel
+            onSelect={name => {
+              injectGoogleFont(name);
+              onFontChange(name);
+              window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: name }));
+              setShowGoogleFonts(false);
+            }}
+            onApplyToSelection={name => {
+              injectGoogleFont(name);
+              onFontChange(name);
+              window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: name }));
+              setShowGoogleFonts(false);
+            }}
+            onClose={() => setShowGoogleFonts(false)}
+            theme={theme}
+            uiFont={uiFont}
+            hideRoles={true}
+          />
+        </div>
+      )}
 
       <Divider />
 
@@ -373,18 +390,6 @@ function Toolbar({
             icon={<Cloud size={16} className="text-indigo-400" />}
             label={t.cloudSave || 'Cloud Save'}
           />
-        )}
-                    
-        {onToggleSettings && (
-          <>
-            <Divider />
-            <ToolBtn
-              onClick={onToggleSettings}
-              icon={<Settings size={16} />}
-              label={t.settings || 'Settings'}
-              active={rightOpen}
-            />
-          </>
         )}
       </div>
     </div>
