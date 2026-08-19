@@ -122,7 +122,7 @@ export default function App() {
     const list = loadCustomFonts();
     return list.length > 0 ? list[list.length - 1] : null;
   });
-  const [lang, setLang] = useState<Lang>('vi');
+  const [lang, setLang] = useState<Lang>(() => loadLang());
   const [fontSize, setFontSize] = useState(18);
   const [apiKey, setApiKey] = useState('');
   const [showRibbon, setShowRibbon] = useState(() => LS.get('kgv-show-ribbon') !== 'false');
@@ -580,9 +580,9 @@ export default function App() {
         if (settings.isFocusMode !== undefined) setIsFocusMode(settings.isFocusMode);
         if (settings.isPreviewMode !== undefined) setIsPreviewMode(settings.isPreviewMode);
         if (settings.typewriterMode !== undefined) setTypewriterMode(settings.typewriterMode);
-        if (lang) {
-          setLang(lang as Lang);
-          LS.set('kgv-lang', lang);
+        if (settings.language) {
+          setLang(settings.language as Lang);
+          LS.set('kgv-lang', settings.language);
         }
       }
 
