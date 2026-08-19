@@ -531,18 +531,6 @@ ${content.split('\n\n').map(para => {
             <Accordion title="Typography" uiFont={uiFont} c={c} defaultOpen>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  {label('Body font')}
-                  {fontSelect(formatState.fontFam, v => {
-                    const editor = (props.editor as TiptapEditorType | null);
-                    if (editor) editor.chain().focus().setFontFamily(v).run();
-                    onFormatChange({ fontFam: v });
-                  })}
-                </div>
-                <div>
-                  {label('Heading font')}
-                  {fontSelect(formatState.headingFontFam, v => onFormatChange({ headingFontFam: v }))}
-                </div>
-                <div>
                   {label('Font size')}
                   {numInput(formatState.fontSize, 8, 96, 1, 'px', v => {
                     const editor = (props.editor as TiptapEditorType | null);

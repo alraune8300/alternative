@@ -100,7 +100,7 @@ interface GoogleFontsPanelProps {
   monoFont?: string;
 }
 
-export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
+export default function GoogleFontsPanel(props: GoogleFontsPanelProps & { hideRoles?: boolean }) {
   const {
     onSelect,
     uiFont = 'Inter',
@@ -115,6 +115,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
     headingFont = 'Playfair Display',
     uiFontRole = 'Inter',
     monoFont = 'JetBrains Mono',
+    hideRoles,
   } = props;
 
   const rawTheme = (props.c || props.theme) as Record<string, unknown> | undefined;
@@ -137,6 +138,18 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'catalog' | 'roles'>('catalog');
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem('kgv-fav-fonts') || '[]')));
+
+  const toggleFav = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      localStorage.setItem('kgv-fav-fonts', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
 
   const handleLoad = (name: string) => {
     loadGoogleFont(name);
@@ -167,7 +180,15 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
     if (onSelect) onSelect(name);
   };
 
-  const filteredCategories = FONT_CATEGORIES.map(cat => ({
+  let displayCategories = FONT_CATEGORIES;
+  if (favorites.size > 0 && search === '') {
+     displayCategories = [
+       { category: 'FAVORITES', fonts: Array.from(favorites) },
+       ...FONT_CATEGORIES
+     ];
+  }
+
+  const filteredCategories = displayCategories.map(cat => ({
     category: cat.category,
     fonts: cat.fonts.filter(f => f.toLowerCase().includes(search.toLowerCase()))
   })).filter(cat => cat.fonts.length > 0);
@@ -189,7 +210,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
         >
           {t(lang, 'fontCatalog')}
         </button>
-        <button
+        {!hideRoles && <button
           type="button"
           onClick={() => setActiveTab('roles')}
           style={{
@@ -201,7 +222,7 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps) {
           }}
         >
           {t(lang, 'fontRolesAndVars')}
-        </button>
+        </button>}
       </div>
 
       {activeTab === 'roles' ? (
