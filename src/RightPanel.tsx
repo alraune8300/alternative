@@ -1248,7 +1248,7 @@ ${content.split('\n\n').map(para => {
               </button>
               {showGoogleFonts && (
                 <div style={{ marginBottom: 12 }}>
-                  <GoogleFontsPanel
+                  <GoogleFontsPanel apiKey={props.apiKey as string} onSaveApiKey={props.onSaveApiKey as any}
                     c={c}
                     uiFont={uiFont}
                     bodyFont={bodyFont}
@@ -1293,7 +1293,7 @@ ${content.split('\n\n').map(para => {
                 </button>
                 {showGoogleFonts && (
                   <div style={{ marginTop: 8, border: `1px solid ${c.border}`, borderRadius: 8, overflow: 'hidden' }}>
-                    <GoogleFontsPanel
+                    <GoogleFontsPanel apiKey={props.apiKey as string} onSaveApiKey={props.onSaveApiKey as any}
                       c={c}
                       uiFont={uiFont}
                       bodyFont={bodyFont}

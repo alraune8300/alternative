@@ -2110,7 +2110,7 @@ export default function App() {
       </div>
 
       {fontExplorerOpen && (
-        <GoogleFontsPanel
+        <GoogleFontsPanel onSaveApiKey={handleSaveApiKey}
           theme={theme} uiFont={uiFont} t={t} apiKey={apiKey}
           editor={editorInstance}
           onClose={() => setFontExplorerOpen(false)}

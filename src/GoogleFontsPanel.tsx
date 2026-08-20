@@ -89,6 +89,7 @@ interface GoogleFontsPanelProps {
   lang?: Lang;
   t?: unknown;
   apiKey?: string;
+  onSaveApiKey?: (key: string) => void;
   onClose?: () => void;
   onApplyToSelection?: (family: string) => void;
   onApplyToUi?: (family: string) => void;
@@ -212,13 +213,17 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps & { hideRo
   const [activeTab, setActiveTab] = useState<'catalog' | 'roles'>('catalog');
   const [apiFonts, setApiFonts] = useState<GoogleFontItem[]>([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [apiError, setApiError] = useState('');
   const [localApiKey, setLocalApiKey] = useState('');
   
   useEffect(() => {
     if (props.apiKey) {
       setIsFetching(true);
+      setApiError('');
       fetchGoogleFonts(props.apiKey).then(fonts => {
         if (fonts && fonts.length > 0) setApiFonts(fonts);
+      }).catch(err => {
+        setApiError(err.message || 'Failed to fetch fonts');
       }).finally(() => setIsFetching(false));
     }
   }, [props.apiKey]);
@@ -382,7 +387,11 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps & { hideRo
                   onClick={() => {
                     if (localApiKey) {
                       localStorage.setItem('kgv-gfonts-api-key', localApiKey);
-                      window.location.reload();
+                      if (props.onSaveApiKey) {
+                        props.onSaveApiKey(localApiKey);
+                      } else {
+                        window.location.reload();
+                      }
                     }
                   }}
                   style={{
@@ -402,6 +411,16 @@ export default function GoogleFontsPanel(props: GoogleFontsPanelProps & { hideRo
           {isFetching && (
             <div style={{ fontSize: '0.75rem', color: c.accent, marginBottom: 8, textAlign: 'center' }}>
               Fetching full font library...
+            </div>
+          )}
+          {apiError && (
+            <div style={{ fontSize: '0.75rem', color: 'rgb(239, 68, 68)', marginBottom: 8, textAlign: 'center' }}>
+              {apiError}
+            </div>
+          )}
+          {!isFetching && !apiError && props.apiKey && apiFonts.length > 0 && (
+            <div style={{ fontSize: '0.7rem', color: c.accent, marginBottom: 8, textAlign: 'center' }}>
+              ✓ Connected ({apiFonts.length} fonts loaded)
             </div>
           )}
           <input
