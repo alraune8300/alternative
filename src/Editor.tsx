@@ -10,6 +10,7 @@ import Subscript from '@tiptap/extension-subscript';
 import { ResizableImage } from './tiptapExtensions';
 import './Editor.css';
 import { FontSize, LineHeight, TextTransform, FontFeatures, LetterSpacing, WordSpacing, IndentExtension } from './tiptapExtensions';
+import { SmartFormatting } from './SmartFormattingExtension';
 import type { ThemeColors, FormatState } from './types';
 import type { Dict } from './i18n';
 
@@ -76,6 +77,7 @@ function Editor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, horizontalRule: {} }),
+      SmartFormatting,
       TextStyle, FontFamily, FontSize, LineHeight, TextTransform, FontFeatures, LetterSpacing, WordSpacing, Superscript, Subscript, IndentExtension, ResizableImage,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
@@ -132,6 +134,52 @@ function Editor({
       }
     },
     editorProps: {
+      handleTextInput: (view, from, to, text) => {
+        const state = window.__formatState;
+        if (!state) return false;
+        
+        // Double space for period
+        if (state.doubleSpacePeriod !== false && text === ' ' && from >= 1) {
+          const prevChar = view.state.doc.textBetween(from - 1, from);
+          if (prevChar === ' ') {
+            const charBeforeThat = from >= 2 ? view.state.doc.textBetween(from - 2, from - 1) : '';
+            if (charBeforeThat !== ' ' && charBeforeThat !== '.') {
+              view.dispatch(view.state.tr.insertText('. ', from - 1, to));
+              return true;
+            }
+          }
+        }
+
+        // Intercept Heading shortcuts
+        if (state.toggleHeadings === false && text === ' ') {
+          const before = view.state.doc.textBetween(Math.max(0, from - 4), from);
+          if (before.match(/(?:^|\n)(#{1,3})$/)) {
+            view.dispatch(view.state.tr.insertText(' ', from, to));
+            return true;
+          }
+        }
+
+        // Intercept other markdown shortcuts
+        if (state.markdownShortcuts === false) {
+          if (text === ' ') {
+            const before = view.state.doc.textBetween(Math.max(0, from - 4), from);
+            if (before.match(/(?:^|\n)([*>+-]|\d+\.)$/)) {
+              view.dispatch(view.state.tr.insertText(' ', from, to));
+              return true;
+            }
+          }
+          if (text === '-' && from >= 2 && view.state.doc.textBetween(from - 2, from) === '--') {
+            view.dispatch(view.state.tr.insertText('-', from, to));
+            return true;
+          }
+          if (text === '`' && from >= 2 && view.state.doc.textBetween(from - 2, from) === '``') {
+            view.dispatch(view.state.tr.insertText('`', from, to));
+            return true;
+          }
+        }
+
+        return false;
+      },
       handleScrollToSelection: (view) => {
         // Prevent ProseMirror auto-scrolling when formatting or making selections via Select All
         // if the active element is not the editor's text area (e.g., toolbar button clicks)

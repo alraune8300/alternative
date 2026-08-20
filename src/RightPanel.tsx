@@ -660,6 +660,81 @@ ${content.split('\n\n').map(para => {
               </div>
             </Accordion>
 
+            
+            <Accordion title="Smart formatting" uiFont={uiFont} c={c}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${c.borderFaint}` }}>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>Quotes</span>
+                  <button onClick={() => onFormatChange({ smartQuotes: !formatState.smartQuotes })}
+                    style={{ width: 44, height: 24, borderRadius: 12, background: formatState.smartQuotes ? c.accent : 'transparent', border: `1px solid ${formatState.smartQuotes ? c.accent : c.border}`, cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: formatState.smartQuotes ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: formatState.smartQuotes ? c.surface : c.border, transition: 'left 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {formatState.smartQuotes && <Check size={12} color={c.accent} strokeWidth={3} />}
+                    </div>
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${c.borderFaint}` }}>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>Ellipses</span>
+                  <button onClick={() => onFormatChange({ smartEllipses: !formatState.smartEllipses })}
+                    style={{ width: 44, height: 24, borderRadius: 12, background: formatState.smartEllipses ? c.accent : 'transparent', border: `1px solid ${formatState.smartEllipses ? c.accent : c.border}`, cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: formatState.smartEllipses ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: formatState.smartEllipses ? c.surface : c.border, transition: 'left 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {formatState.smartEllipses && <Check size={12} color={c.accent} strokeWidth={3} />}
+                    </div>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${c.borderFaint}` }}>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>Markdown shortcuts</span>
+                  <button onClick={() => onFormatChange({ markdownShortcuts: !formatState.markdownShortcuts })}
+                    style={{ width: 44, height: 24, borderRadius: 12, background: formatState.markdownShortcuts ? c.accent : 'transparent', border: `1px solid ${formatState.markdownShortcuts ? c.accent : c.border}`, cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: formatState.markdownShortcuts ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: formatState.markdownShortcuts ? c.surface : c.border, transition: 'left 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {formatState.markdownShortcuts && <Check size={12} color={c.accent} strokeWidth={3} />}
+                    </div>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${c.borderFaint}` }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, paddingRight: 16 }}>
+                    <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>Double-space inserts period</span>
+                    <span style={{ fontFamily: uiFont, fontSize: '0.65rem', color: c.textFaint, lineHeight: 1.3 }}>Double tap the space bar after text to insert a period. When disabled, Prose follows your device settings.</span>
+                  </div>
+                  <button onClick={() => onFormatChange({ doubleSpacePeriod: !formatState.doubleSpacePeriod })}
+                    style={{ width: 44, height: 24, borderRadius: 12, background: formatState.doubleSpacePeriod ? c.accent : 'transparent', border: `1px solid ${formatState.doubleSpacePeriod ? c.accent : c.border}`, cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: formatState.doubleSpacePeriod ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: formatState.doubleSpacePeriod ? c.surface : c.border, transition: 'left 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {formatState.doubleSpacePeriod && <Check size={12} color={c.accent} strokeWidth={3} />}
+                    </div>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${c.borderFaint}` }}>
+                  <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>Toggle headings</span>
+                  <button onClick={() => onFormatChange({ toggleHeadings: !formatState.toggleHeadings })}
+                    style={{ width: 44, height: 24, borderRadius: 12, background: formatState.toggleHeadings ? c.accent : 'transparent', border: `1px solid ${formatState.toggleHeadings ? c.accent : c.border}`, cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: formatState.toggleHeadings ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: formatState.toggleHeadings ? c.surface : c.border, transition: 'left 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {formatState.toggleHeadings && <Check size={12} color={c.accent} strokeWidth={3} />}
+                    </div>
+                  </button>
+                </div>
+
+                <Accordion title="Dashes" uiFont={uiFont} c={c}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                      <input type="radio" name="dashesMode" value="disabled" checked={formatState.dashesMode === 'disabled'} onChange={() => onFormatChange({ dashesMode: 'disabled' })} style={{ accentColor: c.accent }} />
+                      <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>Disabled</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                      <input type="radio" name="dashesMode" value="em" checked={formatState.dashesMode === 'em'} onChange={() => onFormatChange({ dashesMode: 'em' })} style={{ accentColor: c.accent }} />
+                      <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>[ - - ] for em dash</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                      <input type="radio" name="dashesMode" value="en-em" checked={formatState.dashesMode === 'en-em'} onChange={() => onFormatChange({ dashesMode: 'en-em' })} style={{ accentColor: c.accent }} />
+                      <span style={{ fontFamily: uiFont, fontSize: '0.85rem', color: c.text }}>[ - - ] for en dash, [ - - - ] for em dash</span>
+                    </label>
+                  </div>
+                </Accordion>
+              </div>
+            </Accordion>
+
             <Accordion title="Column" uiFont={uiFont} c={c}>
               <div>
                 {label('Max width')}
@@ -766,11 +841,6 @@ ${content.split('\n\n').map(para => {
             }}>
               <div style={{ fontFamily: `'${bodyFont}', serif`, fontSize: '0.9rem', fontWeight: 600, color: c.text, marginBottom: 8, lineHeight: 1.3 }}>
                 {title}
-              </div>
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.accent }}>{wordCount.toLocaleString()} {t(lang, 'words')}</span>
-                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.textFaint }}>{charCount.toLocaleString()} {t(lang, 'chars')}</span>
-                <span style={{ fontFamily: monoFont, fontSize: '0.7rem', color: c.textFaint }}>~{readMin} {t(lang, 'readTime') || 'min read'}</span>
               </div>
             </div>
 

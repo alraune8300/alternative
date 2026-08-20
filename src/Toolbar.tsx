@@ -166,7 +166,7 @@ function Toolbar({
       <Divider />
 
       {(() => {
-        const currentFont = editor ? editor.getAttributes('textStyle').fontFamily || selectedFont : selectedFont;
+        const rawFont = editor ? editor.getAttributes('textStyle').fontFamily || selectedFont : selectedFont; const currentFont = rawFont ? rawFont.replace(/['"]/g, '') : rawFont;
         const serifFamilies = ['Merriweather', 'Lora', 'Playfair Display', 'EB Garamond', 'Libre Baskerville', 'Times New Roman', 'Georgia'];
         const monoFamilies = ['JetBrains Mono', 'Courier New'];
         const serifFonts = availableFonts.filter(f => serifFamilies.includes(f.family));

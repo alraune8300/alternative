@@ -11,6 +11,7 @@ import { Minimize2, X, Plus, Minus, ZoomIn, Eye, Maximize2, PanelLeft, Settings 
 import { type Editor as TiptapEditorType } from '@tiptap/react';
 import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
+import WordCountDropdown from './WordCountDropdown';
 import GoogleFontsPanel from './GoogleFontsPanel';
 import Editor from './Editor';
 import Toolbar from './Toolbar';
@@ -265,6 +266,12 @@ export default function App() {
     paraSpacing: 1,
     letterSpacing: 0,
     wordSpacing: 0,
+    smartQuotes: true,
+    smartEllipses: true,
+    markdownShortcuts: true,
+    doubleSpacePeriod: false,
+    toggleHeadings: false,
+    dashesMode: 'en-em',
     firstLineIndent: false,
   });
 
@@ -413,6 +420,10 @@ export default function App() {
       LS.set('kgv-mono-font', updates.monoFontFam);
     }
   }, []);
+
+  useEffect(() => {
+    window.__formatState = formatState;
+  }, [formatState]);
 
   const restoreScroll = useCallback(() => {
     setTimeout(() => {
@@ -1671,6 +1682,8 @@ export default function App() {
             >
               <Settings size={18} />
             </button>
+
+            <WordCountDropdown wordCount={wordCount} charCount={charCount} readMin={Math.ceil(wordCount / 200)} theme={theme} uiFont={uiFont} />
           </>
         )}
 
