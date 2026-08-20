@@ -12,6 +12,7 @@
   user-select: text !important;
   -webkit-user-select: text !important;
   caret-color: currentColor;
+  font-family: var(--kgv-body-font, 'Merriweather', Georgia, serif);
 }
 
 .ProseMirror:focus {
@@ -23,6 +24,36 @@
   background-color: var(--page-surface, transparent);
   position: relative;
   z-index: 1;
+}
+
+.kgv-editor h1,
+.kgv-editor h2,
+.kgv-editor h3,
+.kgv-editor h4,
+.kgv-editor h5,
+.kgv-editor h6,
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  font-family: var(--kgv-heading-font, 'Playfair Display', serif) !important;
+}
+
+.kgv-editor h1 *,
+.kgv-editor h2 *,
+.kgv-editor h3 *,
+.kgv-editor h4 *,
+.kgv-editor h5 *,
+.kgv-editor h6 *,
+.ProseMirror h1 *,
+.ProseMirror h2 *,
+.ProseMirror h3 *,
+.ProseMirror h4 *,
+.ProseMirror h5 *,
+.ProseMirror h6 * {
+  font-family: inherit !important;
 }
 
 .kgv-editor h1 {
@@ -44,6 +75,29 @@
   font-weight: 600;
   margin: 0.6em 0 0.3em;
   line-height: 1.4;
+}
+
+.kgv-editor p,
+.kgv-editor li,
+.kgv-editor blockquote,
+.ProseMirror p,
+.ProseMirror li,
+.ProseMirror blockquote {
+  font-family: var(--kgv-body-font, 'Merriweather', Georgia, serif);
+}
+
+.kgv-editor code,
+.kgv-editor pre,
+.ProseMirror code,
+.ProseMirror pre {
+  font-family: var(--kgv-mono-font, 'JetBrains Mono', monospace) !important;
+}
+
+.kgv-editor code *,
+.kgv-editor pre *,
+.ProseMirror code *,
+.ProseMirror pre * {
+  font-family: inherit !important;
 }
 
 .kgv-editor p {

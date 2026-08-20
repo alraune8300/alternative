@@ -487,6 +487,15 @@ const renderFolder = (folder: Folder, depth = 0) => {
             </span>
           </div>
         </div>
+        {(props.onCloseSidebar || props.onClose) && (
+          <button
+            onClick={onCloseSidebar}
+            title={t(lang, 'collapse') || 'Collapse'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.textMuted, padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            ×
+          </button>
+        )}
       </div>
       {/* Project Switcher Dropdown (Conditional) */}
       {showProjSearch && (

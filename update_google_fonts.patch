@@ -1,0 +1,39 @@
+--- src/GoogleFontsPanel.tsx
++++ src/GoogleFontsPanel.tsx
+@@ -101,4 +101,5 @@
+ }
+ 
++import { fetchGoogleFonts, GoogleFontItem } from './googleFontsApi';
++
+ export default function GoogleFontsPanel(props: GoogleFontsPanelProps & { hideRoles?: boolean }) {
+   const {
+@@ -124,4 +125,7 @@
+     borderFaint: (rawTheme?.borderFaint || 'rgba(0,0,0,0.05)') as string,
+     accentLight: (rawTheme?.accentLight || 'rgba(37,99,235,0.1)') as string,
++    accentMid: (rawTheme?.accentMid || '#3b82f6') as string,
+     surface: (rawTheme?.surface || '#f9fafb') as string,
+     isDark: (rawTheme?.isDark || false) as boolean,
+@@ -140,4 +144,24 @@
+   const [loaded, setLoaded] = useState<Set<string>>(new Set());
+   const [activeRole, setActiveRole] = useState<'body'|'heading'|'ui'|'mono'>('body');
++  const [apiFonts, setApiFonts] = useState<GoogleFontItem[]>([]);
++  const [apiLoading, setApiLoading] = useState(false);
++
++  useEffect(() => {
++    if (apiKey) {
++      setApiLoading(true);
++      fetchGoogleFonts(apiKey).then(fonts => {
++        if (fonts && fonts.length > 0) {
++          setApiFonts(fonts);
++        }
++      }).catch(e => {
++        console.error("Failed to fetch Google Fonts API", e);
++      }).finally(() => {
++        setApiLoading(false);
++      });
++    }
++  }, [apiKey]);
++
++  const [localApiKey, setLocalApiKey] = useState('');
+ 
+   const handleLoad = (name: string) => {

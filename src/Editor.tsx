@@ -16,6 +16,8 @@ import type { Dict } from './i18n';
 type Props = {
   theme: ThemeColors;
   docFont: string;
+  headingFont?: string;
+  monoFont?: string;
   fontSize: number;
   formatState: FormatState;
   onEditorReady?: (editor: import('@tiptap/react').Editor) => void;
@@ -30,7 +32,7 @@ type Props = {
 };
 
 function Editor({
-  theme, docFont, fontSize, formatState, onEditorReady, t, content, onContentChange,
+  theme, docFont, headingFont, monoFont, fontSize, formatState, onEditorReady, t, content, onContentChange,
   isFocusMode = false,
   isPreviewMode = false,
   typewriterMode = false,
@@ -233,6 +235,9 @@ function Editor({
   if (!editor) return null;
 
   const isPaginated = !isPreviewMode && !isFocusMode;
+  const currentBodyFont = formatState?.fontFam || docFont || 'Merriweather';
+  const currentHeadingFont = formatState?.headingFontFam || headingFont || 'Playfair Display';
+  const currentMonoFont = formatState?.monoFontFam || monoFont || 'JetBrains Mono';
 
   if (isPaginated) {
     const activeFontSize = formatState?.fontSize || fontSize || 16;
@@ -244,10 +249,13 @@ function Editor({
         className="w-full h-full relative pointer-events-auto" 
         style={{ 
           color: theme.text,
-          fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
+          fontFamily: `'${currentBodyFont}', Georgia, serif`,
           fontSize: `${activeFontSize}px`,
           lineHeight: `${absLineHeight}px`,
-        }}
+          ['--kgv-body-font' as string]: `'${currentBodyFont}', Georgia, serif`,
+          ['--kgv-heading-font' as string]: `'${currentHeadingFont}', serif`,
+          ['--kgv-mono-font' as string]: `'${currentMonoFont}', monospace`,
+        } as React.CSSProperties}
       >
         <EditorContent editor={editor} />
       </div>
@@ -278,10 +286,13 @@ function Editor({
               : 'px-4 sm:px-6 md:px-8 pt-6 pb-24'
           }`}
           style={{
-            fontFamily: `'${formatState?.fontFam || docFont}', Georgia, serif`,
+            fontFamily: `'${currentBodyFont}', Georgia, serif`,
             fontSize: `${formatState?.fontSize || fontSize}px`,
             lineHeight: `${Math.round((formatState?.fontSize || fontSize || 16) * ((isPreviewMode || isFocusMode) ? 1.8 : (formatState?.lineH || 1.7)))}px`,
-          }}
+            ['--kgv-body-font' as string]: `'${currentBodyFont}', Georgia, serif`,
+            ['--kgv-heading-font' as string]: `'${currentHeadingFont}', serif`,
+            ['--kgv-mono-font' as string]: `'${currentMonoFont}', monospace`,
+          } as React.CSSProperties}
         >
           <EditorContent editor={editor} />
           

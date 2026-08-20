@@ -37,6 +37,8 @@ function loadCustomTheme(): CustomTheme | null {
   return p && p.bg && p.text ? { bg: p.bg, text: p.text, accent: p.accent || '#2563EB' } : null;
 }
 function loadFont(): string { return LS.get('kgv-font') || 'Merriweather'; }
+function loadHeadingFont(): string { return LS.get('kgv-heading-font') || 'Playfair Display'; }
+function loadMonoFont(): string { return LS.get('kgv-mono-font') || 'JetBrains Mono'; }
 function loadUiFont(): string { return LS.get('kgv-ui-font') || 'Inter'; }
 function loadLang(): Lang {
   const v = LS.get('kgv-lang');
@@ -116,6 +118,8 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
   const [customTheme, setCustomTheme] = useState<CustomTheme | null>(null);
   const [docFont, setDocFont] = useState(() => loadFont());
+  const [headingFont, setHeadingFont] = useState(() => loadHeadingFont());
+  const [monoFont, setMonoFont] = useState(() => loadMonoFont());
   const [uiFont, setUiFont] = useState('Inter');
   const [customFonts, setCustomFonts] = useState<CustomFont[]>(() => loadCustomFonts());
   const [customFont, setCustomFont] = useState<CustomFont | null>(() => {
@@ -252,7 +256,8 @@ export default function App() {
   
   const [formatState, setFormatState] = useState<FormatState>({
     fontFam: loadFont(),
-    headingFontFam: loadFont(),
+    headingFontFam: loadHeadingFont(),
+    monoFontFam: loadMonoFont(),
     fontSize: fontSize,
     lineH: 1.7,
     align: 'left',
@@ -262,6 +267,14 @@ export default function App() {
     wordSpacing: 0,
     firstLineIndent: false,
   });
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--kgv-body-font', `'${docFont}', Georgia, serif`);
+    document.documentElement.style.setProperty('--kgv-doc-font', `'${docFont}', Georgia, serif`);
+    document.documentElement.style.setProperty('--kgv-heading-font', `'${headingFont}', serif`);
+    document.documentElement.style.setProperty('--kgv-mono-font', `'${monoFont}', monospace`);
+    document.documentElement.style.setProperty('--kgv-ui-font', `'${uiFont}', sans-serif`);
+  }, [docFont, headingFont, monoFont, uiFont]);
 
   const [pageFormat, setPageFormat] = useState<PageFormat>({
     paperSize: 'A4',
@@ -390,6 +403,14 @@ export default function App() {
     if (updates.fontFam) {
       setDocFont(updates.fontFam);
       LS.set('kgv-font', updates.fontFam);
+    }
+    if (updates.headingFontFam) {
+      setHeadingFont(updates.headingFontFam);
+      LS.set('kgv-heading-font', updates.headingFontFam);
+    }
+    if (updates.monoFontFam) {
+      setMonoFont(updates.monoFontFam);
+      LS.set('kgv-mono-font', updates.monoFontFam);
     }
   }, []);
 
@@ -1189,12 +1210,22 @@ export default function App() {
   const handleCustomThemeChange = useCallback((c: CustomTheme) => {
     setCustomTheme(c); LS.setJSON('kgv-custom-theme', c); setThemeMode('custom'); LS.set('kgv-theme', 'custom');
   }, []);
-  const handleSelectDocFont = useCallback((family: string) => {
+  const handleSelectDocFont = useCallback((family: string) => { injectGoogleFont(family); 
     setDocFont(family);
     LS.set('kgv-font', family);
     setFormatState(prev => ({ ...prev, fontFam: family }));
   }, []);
-  const handleSelectUiFont = useCallback((family: string) => { setUiFont(family); LS.set('kgv-ui-font', family); }, []);
+  const handleSelectHeadingFont = useCallback((family: string) => { injectGoogleFont(family); 
+    setHeadingFont(family);
+    LS.set('kgv-heading-font', family);
+    setFormatState(prev => ({ ...prev, headingFontFam: family }));
+  }, []);
+  const handleSelectMonoFont = useCallback((family: string) => { injectGoogleFont(family); 
+    setMonoFont(family);
+    LS.set('kgv-mono-font', family);
+    setFormatState(prev => ({ ...prev, monoFontFam: family }));
+  }, []);
+  const handleSelectUiFont = useCallback((family: string) => { injectGoogleFont(family);  setUiFont(family); LS.set('kgv-ui-font', family); }, []);
   const handleSelectLang = useCallback((l: Lang) => {
     setLang(l);
     LS.set('kgv-lang', l);
@@ -1675,7 +1706,7 @@ export default function App() {
           <div 
             className="w-full border-b border-neutral-200/20 dark:border-neutral-800/20 my-2 flex items-center justify-between pl-6 pr-4 md:pr-[72px] transition-all duration-200"
             style={{
-              backgroundColor: theme.surface,
+              backgroundColor: 'transparent',
               ...mobileRibbonStyle
             }}
           >
@@ -1941,6 +1972,8 @@ export default function App() {
                         key={activePage?.id || 'empty'}
                         theme={theme}
                         docFont={docFont}
+                        headingFont={headingFont}
+                        monoFont={monoFont}
                         fontSize={fontSize}
                         formatState={formatState}
                         onEditorReady={setEditorInstance}
@@ -2032,6 +2065,9 @@ export default function App() {
           themeMode={themeMode}
           customTheme={customTheme}
           docFont={docFont}
+          bodyFont={docFont}
+          headingFont={headingFont}
+          monoFont={monoFont}
           uiFont={uiFont}
           customFont={customFont}
           customFonts={customFonts}
@@ -2043,7 +2079,15 @@ export default function App() {
           onSelectTheme={handleSelectTheme}
           onCustomThemeChange={handleCustomThemeChange}
           onSelectDocFont={handleSelectDocFont}
+          onSelectHeadingFont={handleSelectHeadingFont}
+          onSelectMonoFont={handleSelectMonoFont}
           onSelectUiFont={handleSelectUiFont}
+          onFontAssign={(role, fontName) => {
+            if (role === 'body') handleSelectDocFont(fontName);
+            else if (role === 'heading') handleSelectHeadingFont(fontName);
+            else if (role === 'mono') handleSelectMonoFont(fontName);
+            else if (role === 'ui') handleSelectUiFont(fontName);
+          }}
           onSelectLang={handleSelectLang}
           onUploadFont={handleUploadFont}
           onRemoveCustomFont={handleRemoveCustomFont}
@@ -2075,15 +2119,14 @@ export default function App() {
           onApplyToDoc={handleSelectDocFont}
           onAssignRole={(role, fontName) => {
             if (role === 'body') handleSelectDocFont(fontName);
-            else if (role === 'heading') setFormatState(prev => ({ ...prev, headingFontFam: fontName }));
-            else if (role === 'mono') setFormatState(prev => ({ ...prev, monoFontFam: fontName }));
+            else if (role === 'heading') handleSelectHeadingFont(fontName);
+            else if (role === 'mono') handleSelectMonoFont(fontName);
             else if (role === 'ui') handleSelectUiFont(fontName);
-            document.documentElement.style.setProperty(`--kgv-${role}-font`, fontName);
           }}
           bodyFont={docFont}
-          headingFont={formatState.headingFontFam || docFont}
+          headingFont={headingFont}
           uiFontRole={uiFont}
-          monoFont={formatState.monoFontFam || 'JetBrains Mono'}
+          monoFont={monoFont}
         />
       )}
 

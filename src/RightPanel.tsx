@@ -173,8 +173,9 @@ function RightPanel(props: Record<string, unknown>) {
   }
 
   const [internalFormatState, setInternalFormatState] = useState<FormatState>({
-    fontFam: (props.docFont as string) || 'Merriweather',
-    headingFontFam: (props.docFont as string) || 'Merriweather',
+    fontFam: (props.docFont as string) || (props.bodyFont as string) || 'Merriweather',
+    headingFontFam: (props.headingFont as string) || 'Playfair Display',
+    monoFontFam: (props.monoFont as string) || 'JetBrains Mono',
     fontSize: (props.fontSize as number) || 18,
     lineH: 1.7,
     align: 'left',
@@ -190,6 +191,8 @@ function RightPanel(props: Record<string, unknown>) {
     if (props.onFormatChange) (props.onFormatChange as (u: Partial<FormatState>) => void)(updates)
     setInternalFormatState(prev => ({ ...prev, ...updates }))
     if (updates.fontFam && props.onSelectDocFont) (props.onSelectDocFont as (f: string) => void)(updates.fontFam)
+    if (updates.headingFontFam && props.onSelectHeadingFont) (props.onSelectHeadingFont as (f: string) => void)(updates.headingFontFam)
+    if (updates.monoFontFam && props.onSelectMonoFont) (props.onSelectMonoFont as (f: string) => void)(updates.monoFontFam)
   }
 
   const textareaRef = (props.textareaRef as React.RefObject<HTMLTextAreaElement | null>) || { current: null }
@@ -221,17 +224,26 @@ function RightPanel(props: Record<string, unknown>) {
   })
 
   
-  const bodyFont = (props.bodyFont || props.docFont || 'Merriweather') as string
-  const headingFont = (props.headingFont || props.docFont || 'Merriweather') as string
+  const bodyFont = (props.bodyFont || props.docFont || formatState.fontFam || 'Merriweather') as string
+  const headingFont = (props.headingFont || formatState.headingFontFam || 'Playfair Display') as string
   const uiFont2 = (props.uiFont2 || props.uiFont || 'Inter') as string
-  const monoFont2 = (props.monoFont2 || 'JetBrains Mono') as string
+  const monoFont2 = (props.monoFont2 || props.monoFont || formatState.monoFontFam || 'JetBrains Mono') as string
 
   const customFontsProp = props.customFont as { family?: string; name?: string; id?: string } | undefined
   const customFonts: CustomFont[] = (props.customFonts as CustomFont[]) || (customFontsProp ? [{ id: customFontsProp.id || 'cf-1', name: customFontsProp.name || customFontsProp.family || 'CustomFont', family: customFontsProp.family || customFontsProp.name || 'CustomFont', fileName: customFontsProp.name || customFontsProp.family || 'CustomFont' }] : [])
 
   const onFontAssign = (props.onFontAssign as ((role: 'body' | 'heading' | 'ui' | 'mono', fontName: string) => void)) || ((role: 'body' | 'heading' | 'ui' | 'mono', fontName: string) => {
-    if (role === 'body' || role === 'heading') {
+    if (role === 'body') {
       if (props.onSelectDocFont) (props.onSelectDocFont as (f: string) => void)(fontName)
+      if (props.onFormatChange) (props.onFormatChange as (u: Partial<FormatState>) => void)({ fontFam: fontName })
+    }
+    if (role === 'heading') {
+      if (props.onSelectHeadingFont) (props.onSelectHeadingFont as (f: string) => void)(fontName)
+      if (props.onFormatChange) (props.onFormatChange as (u: Partial<FormatState>) => void)({ headingFontFam: fontName })
+    }
+    if (role === 'mono') {
+      if (props.onSelectMonoFont) (props.onSelectMonoFont as (f: string) => void)(fontName)
+      if (props.onFormatChange) (props.onFormatChange as (u: Partial<FormatState>) => void)({ monoFontFam: fontName })
     }
     if (role === 'ui') {
       if (props.onSelectUiFont) (props.onSelectUiFont as (f: string) => void)(fontName)
@@ -240,13 +252,11 @@ function RightPanel(props: Record<string, unknown>) {
 
   const onFontUpload = (props.onFontUpload || props.onUploadFont || (() => {})) as (file: File) => void
   const onFontDelete = (props.onFontDelete || props.onRemoveCustomFont || (() => {})) as (id: string) => void
-  const onFontLoad = props.onFontLoad as ((name: string) => void) | undefined
 
   const pageFormat = (props.pageFormat as PageFormat) || { paperSize: 'A4', orientation: 'portrait', mode: 'pages' }
   const onPageFormatChange = (props.onPageFormatChange as ((pf: PageFormat) => void)) || (() => {})
   const [copied, setCopied] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const activeRole = "body";
   
   const [showGoogleFonts, setShowGoogleFonts] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -386,29 +396,6 @@ ${content.split('\n\n').map(para => {
     <NumInputItem
       val={val} min={min} max={max} step={step} unit={unit}
       onChange={onChange} decimals={decimals} monoFont={monoFont} uiFont={uiFont} c={c}
-    />
-  )
-
-  const fontSelect = (value: string, onChange: (v: string) => void) => (
-    <CustomSelect
-      value={value}
-      onChange={onChange}
-      theme={c}
-      options={availableFontNames.map(n => ({ value: n, label: n }))}
-      buttonStyle={{
-        width: '100%', padding: '5px 8px', borderRadius: 6,
-        border: `1px solid ${c.border}`, background: c.surface,
-        fontFamily: `'${value}', serif`, fontSize: '0.82rem', color: c.text,
-        cursor: 'pointer', outline: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-      }}
-      renderButtonContent={(opt) => (
-        <>
-          <span>{opt?.label || value}</span>
-          <svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' style={{ fill: c.textMuted }}>
-            <path d='M0 0l5 6 5-6z'/>
-          </svg>
-        </>
-      )}
     />
   )
 
@@ -1173,7 +1160,7 @@ ${content.split('\n\n').map(para => {
                     options={availableFontNames.concat(customFonts.map(f => f.name || f.family)).map(n => ({ value: n, label: n }))}
                     buttonStyle={{
                       width: '100%', padding: '5px 8px', borderRadius: 6,
-                      border: `1px solid ${activeRole === role ? c.accent : c.border}`,
+                      border: `1px solid ${c.border}`,
                       background: c.surface, fontFamily: `'${value}', serif`,
                       fontSize: '0.8rem', color: c.text, cursor: 'pointer', outline: 'none',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center'
@@ -1214,7 +1201,7 @@ ${content.split('\n\n').map(para => {
                     >
                       <button
                         type="button"
-                        onClick={() => onFontAssign(activeRole, name)}
+                        onClick={() => onFontAssign('body', name)}
                         style={{
                           flex: 1, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer',
                           fontFamily: `'${name}', serif`, fontSize: '0.84rem', color: c.text,
@@ -1262,13 +1249,12 @@ ${content.split('\n\n').map(para => {
               {showGoogleFonts && (
                 <div style={{ marginBottom: 12 }}>
                   <GoogleFontsPanel
-                    onSelect={name => {
-                      if (onFontLoad) onFontLoad(name)
-                      onFontAssign(activeRole, name)
-                      setShowGoogleFonts(false)
-                    }}
                     c={c}
                     uiFont={uiFont}
+                    bodyFont={bodyFont}
+                    headingFont={headingFont}
+                    monoFont={monoFont2}
+                    uiFontRole={uiFont2}
                     onApplyToSelection={(name) => {
                       window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: name }))
                     }}
@@ -1308,13 +1294,12 @@ ${content.split('\n\n').map(para => {
                 {showGoogleFonts && (
                   <div style={{ marginTop: 8, border: `1px solid ${c.border}`, borderRadius: 8, overflow: 'hidden' }}>
                     <GoogleFontsPanel
-                      onSelect={name => {
-                        if (onFontLoad) onFontLoad(name)
-                        onFontAssign(activeRole, name)
-                        setShowGoogleFonts(false)
-                      }}
                       c={c}
                       uiFont={uiFont}
+                      bodyFont={bodyFont}
+                      headingFont={headingFont}
+                      monoFont={monoFont2}
+                      uiFontRole={uiFont2}
                       onApplyToSelection={(name) => {
                         window.dispatchEvent(new CustomEvent('kgv-apply-font-selection', { detail: name }))
                       }}

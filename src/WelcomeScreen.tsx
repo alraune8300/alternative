@@ -824,7 +824,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
               </p>
             </div>
           ) : (
-            <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-2'}>
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4' : 'flex flex-col gap-2'}>
               
               {/* Render Folders First */}
               {displayedFolders.map((folder) => {
@@ -945,7 +945,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                     e.currentTarget.style.borderColor = theme.borderFaint;
                   }}
                 >
-                  <div className="flex items-center space-x-2 w-full pr-14">
+                  <div className="flex items-center space-x-2 w-full pr-24">
                     <div className="flex-shrink-0" style={{ color: theme.textMuted }}>
                       <FolderOpen size={16} strokeWidth={1.5} />
                     </div>
@@ -1022,7 +1022,7 @@ function WelcomeScreen({ theme, themeMode, onSelectTheme, uiFont, lang = 'vi', o
                   }}
                 >
                   {/* Single Stream Line: Icon + Title */}
-                  <div className="flex items-center space-x-2 w-full pr-14">
+                  <div className="flex items-center space-x-2 w-full pr-24">
                     <div className="flex-shrink-0" style={{ color: theme.textFaint }}>
                       <FileText size={14} strokeWidth={1.5} />
                     </div>
